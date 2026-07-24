@@ -25,13 +25,20 @@ class Light(BaseModel):
 
 
 class Layout(BaseModel):
-    """排版拆解。"""
+    """排版拆解（含可量化的硬版式参数）。"""
 
     layout_type: str = ""            # 版式类型（满版/中轴/分栏/网格/留白...）
     alignment: str = ""              # 对齐方式
     hierarchy: list[str] = []        # 信息层级（主标题>副标题>正文...）
     whitespace: str = ""             # 留白策略
     focal: str = ""                  # 视觉重心 / 阅读引导路径
+    # —— 硬版式参数 ——
+    grid_columns: str = ""           # 栅格列数（单列/双栏/三栏/多栏网格）
+    modules: str = ""                # 模块划分（纵向内容分块数）
+    margins: str = ""                # 页边距（四周留白比例）
+    spacing: str = ""                # 模块间距 / 疏密
+    content_ratio: str = ""          # 内容区占比
+    grid_metrics: dict[str, float] = {}  # 原始度量（占比等），供进一步生成使用
     description: str = ""
 
 

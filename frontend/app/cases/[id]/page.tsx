@@ -58,6 +58,21 @@ export default function CaseDetail() {
                 <Tag>{a.layout.layout_type}</Tag>
                 <Tag>{a.layout.alignment}</Tag>
               </div>
+              {/* 硬版式参数 */}
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {[
+                  ["栅格", a.layout.grid_columns],
+                  ["模块", a.layout.modules],
+                  ["页边距", a.layout.margins],
+                  ["间距", a.layout.spacing],
+                  ["内容占比", a.layout.content_ratio],
+                ].map(([k, v]) => (
+                  <div key={k} className="rounded-md bg-ink px-2 py-1.5">
+                    <div className="text-[10px] text-gray-500">{k}</div>
+                    <div className="text-xs text-gray-200">{v}</div>
+                  </div>
+                ))}
+              </div>
               <div className="mt-3 text-xs text-gray-400">信息层级</div>
               <ol className="mt-1 space-y-1 text-sm text-gray-300">
                 {a.layout.hierarchy.map((h, i) => (

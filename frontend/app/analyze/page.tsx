@@ -106,8 +106,9 @@ export default function AnalyzePage() {
                   </div>
                   <div className="text-sm">{a.layout.layout_type}</div>
                   <p className="mt-1 text-xs text-gray-500">
-                    {a.layout.alignment} · {a.layout.whitespace}
+                    {a.layout.grid_columns} · {a.layout.modules}
                   </p>
+                  <p className="mt-0.5 text-xs text-gray-500">{a.layout.margins}</p>
                 </Card>
                 <Card className="border-indigo-500/40">
                   <div className="text-sm font-semibold text-gray-200">文字 / 字体</div>

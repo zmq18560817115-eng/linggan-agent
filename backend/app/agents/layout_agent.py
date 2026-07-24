@@ -62,13 +62,66 @@ def run(features: ImageFeatures) -> tuple[Layout, Typography]:
 
     focal = f"视觉重心在{dom}，阅读路径由{dom}向{'下' if dom != '下部' else '上'}延展"
 
+    # —— 硬版式参数 ——
+    cg = features.col_groups
+    if cg <= 1:
+        grid_columns = "单列 / 通栏"
+    elif cg == 2:
+        grid_columns = "双栏（2 列栅格）"
+    elif cg == 3:
+        grid_columns = "三栏（3 列栅格）"
+    else:
+        grid_columns = f"多栏网格（约 {cg} 列）"
+
+    rb = features.row_blocks
+    modules = f"纵向约 {rb} 个内容模块" if rb else "整体一块 / 无明显分区"
+
+    mt, mr, mb, ml = features.margins
+    avg_margin = (mt + mr + mb + ml) / 4
+    if avg_margin > 0.15:
+        margin_desc = "宽边距（四周大留白）"
+    elif avg_margin > 0.07:
+        margin_desc = "中等边距"
+    else:
+        margin_desc = "窄边距 / 近满版"
+    margins = (
+        f"{margin_desc}：上{int(mt*100)}% 下{int(mb*100)}% 左{int(ml*100)}% 右{int(mr*100)}%"
+    )
+
+    # 模块间距 / 疏密（用内容占比与模块数估计）
+    if features.content_ratio > 0.7 and rb >= 3:
+        spacing = "模块紧凑、间距小，信息密集"
+    elif features.content_ratio < 0.4:
+        spacing = "模块稀疏、间距大，留白呼吸充分"
+    else:
+        spacing = "模块间距适中，疏密均衡"
+
+    content_ratio_desc = f"内容区约占画面 {int(features.content_ratio*100)}%"
+
     layout = Layout(
         layout_type=layout_type,
         alignment=alignment,
         hierarchy=hierarchy,
         whitespace=whitespace,
         focal=focal,
-        description=f"{layout_type}，{alignment}，繁简度 {features.complexity}。{whitespace}。",
+        grid_columns=grid_columns,
+        modules=modules,
+        margins=margins,
+        spacing=spacing,
+        content_ratio=content_ratio_desc,
+        grid_metrics={
+            "columns": float(cg),
+            "row_blocks": float(rb),
+            "content_ratio": float(features.content_ratio),
+            "margin_top": float(mt),
+            "margin_right": float(mr),
+            "margin_bottom": float(mb),
+            "margin_left": float(ml),
+        },
+        description=(
+            f"{layout_type}，{alignment}；{grid_columns}，{modules}；{margin_desc}；"
+            f"{content_ratio_desc}。{whitespace}。"
+        ),
     )
 
     # —— 文字 / 标题 / 字体 ——

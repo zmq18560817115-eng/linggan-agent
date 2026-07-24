@@ -22,6 +22,12 @@ export interface AnalysisData {
     hierarchy: string[];
     whitespace: string;
     focal: string;
+    grid_columns: string;
+    modules: string;
+    margins: string;
+    spacing: string;
+    content_ratio: string;
+    grid_metrics: Record<string, number>;
     description: string;
   };
   typography: {

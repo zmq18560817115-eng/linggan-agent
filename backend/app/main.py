@@ -180,7 +180,11 @@ async def recommend_direction(
         # 排版为主要参考 —— 放在第一条，作为生图的核心骨架
         directions.append(
             f"【主要·排版】沿用意向图版式：{ref.layout.layout_type}，{ref.layout.alignment}；"
-            f"信息层级：{' → '.join(ref.layout.hierarchy)}；留白：{ref.layout.whitespace}"
+            f"信息层级：{' → '.join(ref.layout.hierarchy)}"
+        )
+        directions.append(
+            f"【主要·栅格】{ref.layout.grid_columns}；{ref.layout.modules}；"
+            f"{ref.layout.margins}；{ref.layout.spacing}"
         )
         directions.append(
             f"【主要·文字】{ref.typography.title_treatment}；字体调性「{ref.typography.font_tone}」；"
@@ -196,7 +200,8 @@ async def recommend_direction(
         # 提示词：排版/信息层级在前（主），风格/色彩在后（次）
         prompt = (
             f"{industry or '品牌'}视觉；"
-            f"【版式为主】{ref.layout.layout_type}，{ref.layout.alignment}，"
+            f"【版式为主】{ref.layout.layout_type}，{ref.layout.grid_columns}，"
+            f"{ref.layout.modules}，{ref.layout.alignment}，{ref.layout.margins}，"
             f"信息层级 {' → '.join(ref.layout.hierarchy)}，{ref.typography.title_treatment}，"
             f"字体{ref.typography.font_tone}；"
             f"【风格为辅】{'、'.join(ref.style.style_tags)}，参考色板 {palette_hint}"

@@ -39,6 +39,12 @@ class ImageFeatures:
     band_activity: tuple[float, float, float] = (0.0, 0.0, 0.0)  # 上/中/下三段活跃度
     col_activity: tuple[float, float, float] = (0.0, 0.0, 0.0)   # 左/中/右三列活跃度
     text_density: float = 0.0  # 文字/细节密度估计 0~1
+    # —— 硬版式参数（基于行/列投影）——
+    margins: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)  # 上/右/下/左 页边距(占比)
+    row_blocks: int = 1       # 纵向内容模块数（被留白分隔的横向条带）
+    col_groups: int = 1       # 栅格列数（被纵向留白分隔的列组）
+    content_ratio: float = 1.0  # 内容区占画面比例
+    content_bbox: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 1.0)  # 内容框 上/左/下/右
 
 
 def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
@@ -70,6 +76,53 @@ def _name_color(rgb: tuple[int, int, int]) -> str:
     if hue < 290:
         return "紫"
     return "品红"
+
+
+def _active_indices(profile: list[float], ratio: float = 0.16) -> list[int]:
+    """返回投影中「有内容」的下标（活跃度超过峰值一定比例）。"""
+    if not profile:
+        return []
+    peak = max(profile)
+    if peak <= 0:
+        return []
+    thr = peak * ratio
+    return [i for i, v in enumerate(profile) if v > thr]
+
+
+def _count_groups(active: list[int], total: int, gap_frac: float = 0.04) -> int:
+    """把连续的活跃下标聚成组，组间需有足够留白间隙。返回组数。"""
+    if not active:
+        return 0
+    min_gap = max(2, int(total * gap_frac))
+    groups = 1
+    for prev, cur in zip(active, active[1:]):
+        if cur - prev > min_gap:
+            groups += 1
+    return groups
+
+
+def _layout_metrics(row_prof, col_prof, H, W):
+    """从行/列边缘投影推断硬版式参数：页边距、模块数、栅格列数、内容占比、内容框。"""
+    ar = _active_indices(row_prof)
+    ac = _active_indices(col_prof)
+    if not ar or not ac:
+        # 近乎空白
+        return (0.4, 0.4, 0.4, 0.4), 0, 0, 0.0, (0.4, 0.4, 0.6, 0.6)
+
+    top = ar[0] / H
+    bottom = (H - 1 - ar[-1]) / H
+    left = ac[0] / W
+    right = (W - 1 - ac[-1]) / W
+
+    row_blocks = _count_groups(ar, H, gap_frac=0.05)
+    col_groups = _count_groups(ac, W, gap_frac=0.06)
+
+    content_h = (ar[-1] - ar[0] + 1) / H
+    content_w = (ac[-1] - ac[0] + 1) / W
+    content_ratio = round(content_h * content_w, 3)
+    bbox = (round(top, 3), round(left, 3), round(1 - bottom, 3), round(1 - right, 3))
+    margins = (round(top, 3), round(right, 3), round(bottom, 3), round(left, 3))
+    return margins, row_blocks, col_groups, content_ratio, bbox
 
 
 def extract_features(image_path: str) -> ImageFeatures:
@@ -112,8 +165,10 @@ def extract_features(image_path: str) -> ImageFeatures:
     # —— 边缘密度分析：用于推断排版结构与文字/标题区域 ——
     gray = img.convert("L").resize((120, 120))
     edges = gray.filter(ImageFilter.FIND_EDGES)
+    # FIND_EDGES 会在图像四周留下 1~2px 亮边伪影，裁掉以免污染页边距/投影分析
+    edges = edges.crop((2, 2, edges.width - 2, edges.height - 2))
+    W, H = edges.size
     ep = list(edges.getdata())
-    W = H = 120
     overall = sum(ep) / len(ep) / 255.0
     # 三段（上/中/下）活跃度
     band = [0.0, 0.0, 0.0]
@@ -133,6 +188,13 @@ def extract_features(image_path: str) -> ImageFeatures:
     # 文字密度：高边缘像素占比
     text_density = round(sum(1 for v in ep if v > 60) / len(ep), 3)
 
+    # —— 硬版式参数：行/列投影 ——
+    row_prof = [sum(ep[y * W:(y + 1) * W]) for y in range(H)]
+    col_prof = [sum(ep[y * W + x] for y in range(H)) for x in range(W)]
+    margins, row_blocks, col_groups, content_ratio, content_bbox = _layout_metrics(
+        row_prof, col_prof, H, W
+    )
+
     return ImageFeatures(
         width=w,
         height=h,
@@ -149,6 +211,11 @@ def extract_features(image_path: str) -> ImageFeatures:
         band_activity=(band[0], band[1], band[2]),
         col_activity=(col[0], col[1], col[2]),
         text_density=text_density,
+        margins=margins,
+        row_blocks=row_blocks,
+        col_groups=col_groups,
+        content_ratio=content_ratio,
+        content_bbox=content_bbox,
     )
 
 
