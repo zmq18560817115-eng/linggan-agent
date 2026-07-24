@@ -61,6 +61,17 @@ frontend/
   lib/api.ts           # 后端 API 封装
 ```
 
+## 部署
+
+内网/生产部署（Docker Compose 一键、离线镜像导入、Nginx 反代等）见 **[DEPLOY.md](./DEPLOY.md)**。
+最简形式：
+
+```bash
+git clone https://github.com/zmq18560817115-eng/linggan-agent.git
+cd linggan-agent
+docker compose up -d --build   # 前端 :3000  后端 :8000
+```
+
 ## 快速启动
 
 ### 1. 后端
