@@ -3,14 +3,9 @@ const nextConfig = {
   reactStrictMode: true,
   // 便于容器化部署：产出自包含的 standalone 输出
   output: "standalone",
-  async rewrites() {
-    // 将 /api 与 /uploads 代理到 FastAPI 后端，避免跨域配置
-    const backend = process.env.BACKEND_URL || "http://127.0.0.1:8000";
-    return [
-      { source: "/api/:path*", destination: `${backend}/api/:path*` },
-      { source: "/uploads/:path*", destination: `${backend}/uploads/:path*` },
-    ];
-  },
+  // 注意：不用 next.config 的 rewrites 代理后端。
+  // 因为 standalone 产物会在「构建时」固化 rewrites 的目标地址，导致运行时
+  // 修改 BACKEND_URL 不生效。改用 app/api、app/uploads 下的运行时代理路由。
 };
 
 module.exports = nextConfig;
