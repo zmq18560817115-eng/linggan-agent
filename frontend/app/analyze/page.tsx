@@ -95,6 +95,27 @@ export default function AnalyzePage() {
                 </Link>
               </Card>
 
+              {/* 拆解重心：排版 + 文字 优先 */}
+              <div className="grid grid-cols-2 gap-4">
+                <Card className="border-indigo-500/40">
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <span className="rounded bg-indigo-500 px-1 py-0.5 text-[9px] font-semibold text-white">
+                      重心
+                    </span>
+                    <span className="text-sm font-semibold text-gray-200">排版</span>
+                  </div>
+                  <div className="text-sm">{a.layout.layout_type}</div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {a.layout.alignment} · {a.layout.whitespace}
+                  </p>
+                </Card>
+                <Card className="border-indigo-500/40">
+                  <div className="text-sm font-semibold text-gray-200">文字 / 字体</div>
+                  <div className="mt-1 text-sm">{a.typography.text_ratio}</div>
+                  <p className="mt-1 text-xs text-gray-500">{a.typography.font_tone}</p>
+                </Card>
+              </div>
+
               <Card>
                 <div className="mb-2 text-sm font-semibold text-gray-300">色彩体系</div>
                 <Swatches colors={a.color.palette} />
@@ -111,18 +132,6 @@ export default function AnalyzePage() {
                   <div className="text-sm font-semibold text-gray-300">光影</div>
                   <div className="mt-1 text-sm">{a.light.type}</div>
                   <p className="mt-1 text-xs text-gray-500">{a.light.description}</p>
-                </Card>
-                <Card>
-                  <div className="text-sm font-semibold text-gray-300">排版</div>
-                  <div className="mt-1 text-sm">{a.layout.layout_type}</div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {a.layout.alignment} · {a.layout.whitespace}
-                  </p>
-                </Card>
-                <Card>
-                  <div className="text-sm font-semibold text-gray-300">文字 / 字体</div>
-                  <div className="mt-1 text-sm">{a.typography.text_ratio}</div>
-                  <p className="mt-1 text-xs text-gray-500">{a.typography.font_tone}</p>
                 </Card>
               </div>
             </>

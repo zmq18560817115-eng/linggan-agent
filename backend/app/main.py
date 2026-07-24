@@ -153,8 +153,14 @@ async def recommend_direction(
                 ref = _analyze_reference(file, data)
             except Exception as exc:  # noqa: BLE001
                 raise HTTPException(status_code=500, detail=f"意向图解析失败：{exc}") from exc
-            # 参考图的风格与情绪并入推荐标签（权重更高，放前面）
-            hit_tags = ref.style.style_tags + ref.style.mood_keywords[:2] + hit_tags
+            # 意向图：以「排版」为主要参考、风格为次要参考。
+            # 排版维度置于标签最前（权重最高），风格与情绪其次。
+            layout_tags = [
+                ref.layout.layout_type,
+                ref.layout.alignment,
+                ref.typography.text_ratio,
+            ]
+            hit_tags = layout_tags + ref.style.style_tags + ref.style.mood_keywords[:2] + hit_tags
 
     if not hit_tags:
         hit_tags = ["高级感", "极简", "克制"]
@@ -171,25 +177,31 @@ async def recommend_direction(
     # —— 组织方向与提示词 ——
     directions: list[str] = []
     if ref is not None:
+        # 排版为主要参考 —— 放在第一条，作为生图的核心骨架
         directions.append(
-            f"延续意向图调性：{'、'.join(ref.style.style_tags)}；"
-            f"沿用其{ref.layout.layout_type}排版与{ref.color.description}"
+            f"【主要·排版】沿用意向图版式：{ref.layout.layout_type}，{ref.layout.alignment}；"
+            f"信息层级：{' → '.join(ref.layout.hierarchy)}；留白：{ref.layout.whitespace}"
         )
         directions.append(
-            f"色板参考意向图主色 {ref.color.primary}（{'、'.join(ref.color.palette[:3])}），"
-            "结合需求做微调"
+            f"【主要·文字】{ref.typography.title_treatment}；字体调性「{ref.typography.font_tone}」；"
+            f"{ref.typography.text_ratio}，{ref.typography.size_contrast}"
         )
+        # 风格为次要参考
         directions.append(
-            f"标题/字体建议：{ref.typography.title_treatment}，字体调性「{ref.typography.font_tone}」"
+            f"【次要·风格】风格倾向 {'、'.join(ref.style.style_tags)}，"
+            f"色板参考主色 {ref.color.primary}（{'、'.join(ref.color.palette[:3])}），可结合需求微调"
         )
-        directions.append(f"情绪关键词：{'、'.join(hit_tags[:4])}")
+        directions.append(f"情绪关键词：{'、'.join(ref.style.mood_keywords)}")
         palette_hint = "、".join(ref.color.palette[:4])
+        # 提示词：排版/信息层级在前（主），风格/色彩在后（次）
         prompt = (
-            f"{industry or '品牌'}视觉，{'、'.join(hit_tags)}风格，"
-            f"参考色板 {palette_hint}（主色 {ref.color.primary}），"
-            f"{ref.layout.layout_type}排版，{ref.light.type}光影，"
-            f"字体{ref.typography.font_tone}，"
-            + (f"需求：{text}，" if text else "")
+            f"{industry or '品牌'}视觉；"
+            f"【版式为主】{ref.layout.layout_type}，{ref.layout.alignment}，"
+            f"信息层级 {' → '.join(ref.layout.hierarchy)}，{ref.typography.title_treatment}，"
+            f"字体{ref.typography.font_tone}；"
+            f"【风格为辅】{'、'.join(ref.style.style_tags)}，参考色板 {palette_hint}"
+            f"（主色 {ref.color.primary}），{ref.light.type}光影；"
+            + (f"需求：{text}；" if text else "")
             + "高质量, 商业级, 精致细节, 8k"
         )
     else:

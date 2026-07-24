@@ -32,28 +32,27 @@ def run_pipeline(image_path: str) -> AnalysisResult:
         features, basics, style, color, light, material, layout, typography
     )
 
-    # 案例名称与总结
-    name = f"{basics.industry}·{'/'.join(style.style_tags[:2])}视觉案例"
+    # 案例名称与总结 —— 以「排版」为拆解重心（排版优先，风格次之）
+    name = f"{layout.layout_type}·{basics.industry}·{'/'.join(style.style_tags[:1])}案例"
     summary = (
-        f"一张{basics.image_type}，呈现{'、'.join(style.style_tags)}风格，"
-        f"{color.description}排版为{layout.layout_type}，{typography.text_ratio}。"
+        f"一张{basics.image_type}，排版为{layout.layout_type}（{layout.alignment}），"
+        f"信息层级：{' → '.join(layout.hierarchy)}；{typography.text_ratio}，"
+        f"{typography.title_treatment}。风格上呈现{'、'.join(style.style_tags)}，{color.description}"
     )
 
-    # 汇总标签（供检索）——加入排版与文字维度
+    # 汇总标签（供检索）—— 排版/文字维度置前，风格维度置后
     tags = list(
         dict.fromkeys(
-            style.style_tags
-            + style.mood_keywords
-            + [
-                basics.industry,
-                basics.scene,
-                composition.type,
-                light.type,
+            [
                 layout.layout_type,
                 layout.alignment,
                 typography.text_ratio,
                 typography.font_tone.split("（")[0].split("/")[0].strip(),
+                composition.type,
             ]
+            + style.style_tags
+            + style.mood_keywords
+            + [basics.industry, basics.scene, light.type]
         )
     )
 
