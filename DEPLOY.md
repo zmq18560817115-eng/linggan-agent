@@ -85,6 +85,28 @@ Windows PowerShell 下设置环境变量：
 $env:BACKEND_URL="http://127.0.0.1:8000"; npm run start
 ```
 
+#### 用 standalone 产物部署（不带 node_modules，体积小）
+
+项目启用了 `output: "standalone"`。`npm run build` 后会自动（postbuild 脚本）把
+`.next/static` 与 `public` 拷入 `.next/standalone`，因此可直接运行：
+
+```bash
+npm run build
+BACKEND_URL=http://<后端IP>:8000 npm run start:standalone   # = node .next/standalone/server.js
+```
+
+> ⚠️ 常见坑：**直接 `node .next/standalone/server.js` 却没有静态资源** → 页面能打开但
+> 样式(CSS)全丢。原因是 Next 的 standalone 输出默认不含 `.next/static` 与 `public`。
+> 本项目已用 postbuild 脚本自动补齐；若你手工拷贝 standalone 到别处，记得把这两个目录
+> 一起带上：
+>
+> ```
+> .next/standalone/
+>   ├── server.js
+>   ├── .next/static/   ← 必须
+>   └── public/         ← 必须
+> ```
+
 ---
 
 ## 三、关键配置项（环境变量）
