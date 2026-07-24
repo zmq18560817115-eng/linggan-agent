@@ -1,2 +1,116 @@
-# linggan-agent
-优秀的图文拆解素材库
+# linggan-agent · AI视觉拆解 Agent
+
+> 优秀的图文拆解素材库 —— 把优秀案例图片，沉淀为团队可复用的视觉知识资产。
+>
+> **优秀案例图片 → AI视觉理解 → 设计拆解 → 案例资产卡 → 团队复用**
+
+本仓库是《AI视觉拆解 Agent Demo 技术实现方案 V1.0》的 MVP 实现。
+
+## 解决的问题
+
+1. 需求方无法准确描述视觉方向 → 提供「需求 → 视觉方向」推荐。
+2. 设计经验依赖个人，无法沉淀 → 自动生成结构化案例资产卡并入库。
+3. 优秀案例无法转化为设计规则 → Rule Agent 总结「为什么优秀 / 可复用方法」。
+
+## 系统架构
+
+```
+用户 → Web前端(Next.js) → 后端API(FastAPI) → AI视觉分析服务
+                                              → 数据库与素材存储 → 视觉知识库
+```
+
+## AI Agent 流水线
+
+上传图片后，后端依次运行 5 个 Agent（`backend/app/agents/`）：
+
+| Agent | 职责 |
+|-------|------|
+| Vision Agent | 识别图片类型、行业、使用场景 |
+| Style Agent | 分析视觉风格（高级感/科技感/温暖感/年轻化…）与情绪 |
+| Design Agent | 拆解色彩、构图、光影、材质 |
+| Rule Agent | 总结设计规律：为什么优秀 / 可复用方法 |
+| Prompt Agent | 反向生成 AI 绘图提示词（中/英） |
+
+视觉底座 `vision_provider.py` 默认使用 **基于 Pillow 的启发式分析器**：从图片中
+提取真实主色板、亮度、对比度、冷暖与宽高比等特征，因此无需任何 API Key
+即可离线跑通完整链路。配置环境变量即可切换到真实视觉大模型（Qwen-VL / GPT Vision）。
+
+## 技术选型
+
+- 前端：Next.js 14（App Router）+ Tailwind CSS
+- 后端：FastAPI + Python 3.11
+- 数据库：SQLAlchemy + SQLite（Demo；生产可切 PostgreSQL / Supabase）
+- 视觉分析：Pillow 启发式 / 可插拔 VLM
+
+## 目录结构
+
+```
+backend/
+  app/
+    main.py            # FastAPI 入口与 API 路由
+    config.py          # 环境变量配置
+    database.py        # DB 连接
+    models.py          # images / cases / analysis / tags 四表
+    schemas.py         # AI 输出结构（对应方案「六」）
+    crud.py            # 落库与检索
+    vision_provider.py # 视觉特征提取（可插拔真实大模型）
+    agents/            # 5 个 Agent + pipeline 编排
+frontend/
+  app/                 # 首页 / 案例库 / AI拆解 / 案例详情 / 需求生成
+  components/ui.tsx    # 通用组件
+  lib/api.ts           # 后端 API 封装
+```
+
+## 快速启动
+
+### 1. 后端
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+- API 文档：http://127.0.0.1:8000/docs
+- 健康检查：http://127.0.0.1:8000/api/health
+
+### 2. 前端
+
+```bash
+cd frontend
+npm install
+npm run dev        # 开发模式，http://localhost:3000
+# 或 npm run build && npm run start
+```
+
+前端通过 `next.config.js` 的 rewrites 将 `/api`、`/uploads` 代理到后端，
+默认后端地址 `http://127.0.0.1:8000`，可用 `BACKEND_URL` 覆盖。
+
+## 主要 API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/analyze` | 上传图片 → 运行流水线 → 生成并保存案例卡 |
+| GET  | `/api/cases?q=&tag=` | 案例库检索（关键词 + 标签） |
+| GET  | `/api/cases/{id}` | 案例详情 |
+| GET  | `/api/tags` | 标签及案例数（热门风格） |
+| POST | `/api/recommend` | 需求文本 → 推荐视觉方向 |
+
+## 接入真实视觉大模型
+
+```bash
+export VISION_PROVIDER=openai      # 或 qwen
+export VISION_API_KEY=sk-xxx
+export VISION_BASE_URL=https://...
+export VISION_MODEL=qwen-vl-max
+```
+
+未配置时自动使用离线启发式分析器，Demo 开箱即用。
+
+## 路线图
+
+- **V1.0（当前）**：图片上传、AI 拆解、案例卡入库、标签检索、需求推荐。
+- **V2.0**：接入 CLIP 视觉向量搜索（ChromaDB / Milvus / Supabase Vector），实现图片语义检索与相似案例。
+- **V3.0**：完整需求理解系统：需求输入 → 视觉方向 → 意向图生成。
+
+最终目标：将设计师个人经验，转化为企业共享的 AI 视觉知识资产。

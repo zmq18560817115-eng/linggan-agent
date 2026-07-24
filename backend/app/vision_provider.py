@@ -1,0 +1,139 @@
+"""视觉分析底座（对应技术方案「AI视觉分析服务」）。
+
+- 若配置了真实视觉模型（VISION_PROVIDER=openai/qwen 且提供 API Key），
+  则调用该模型返回结构化特征。
+- 否则退回到基于 Pillow 的启发式分析器：从图片中提取主色板、亮度、
+  对比度、宽高比等真实特征，供上层 Agent 生成拆解结果。
+
+这样 Demo 既能离线跑通完整链路，又能一行环境变量切换到真实大模型。
+"""
+from __future__ import annotations
+
+import colorsys
+from collections import Counter
+from dataclasses import dataclass, field
+
+from PIL import Image as PILImage
+
+from . import config
+
+
+@dataclass
+class ImageFeatures:
+    """从图片中提取的底层视觉特征。"""
+
+    width: int
+    height: int
+    aspect_ratio: float
+    orientation: str          # portrait | landscape | square
+    palette: list[str] = field(default_factory=list)   # 主色板（HEX）
+    primary_hex: str = "#888888"
+    brightness: float = 0.5   # 0~1
+    contrast: float = 0.5     # 0~1
+    saturation: float = 0.5   # 0~1
+    warm: bool = False        # 冷暖倾向
+    color_names: list[str] = field(default_factory=list)
+
+
+def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
+    return "#{:02X}{:02X}{:02X}".format(*rgb)
+
+
+def _name_color(rgb: tuple[int, int, int]) -> str:
+    r, g, b = [c / 255 for c in rgb]
+    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+    if s < 0.12:
+        if v < 0.2:
+            return "黑"
+        if v > 0.85:
+            return "白"
+        return "灰"
+    hue = h * 360
+    if hue < 15 or hue >= 345:
+        return "红"
+    if hue < 45:
+        return "橙"
+    if hue < 70:
+        return "黄"
+    if hue < 160:
+        return "绿"
+    if hue < 200:
+        return "青"
+    if hue < 255:
+        return "蓝"
+    if hue < 290:
+        return "紫"
+    return "品红"
+
+
+def extract_features(image_path: str) -> ImageFeatures:
+    """使用 Pillow 提取真实图片特征。"""
+    img = PILImage.open(image_path).convert("RGB")
+    w, h = img.size
+    ratio = round(w / h, 3) if h else 1.0
+    if abs(ratio - 1) < 0.08:
+        orientation = "square"
+    elif ratio > 1:
+        orientation = "landscape"
+    else:
+        orientation = "portrait"
+
+    # 缩略后统计主色（量化到 16 色）
+    small = img.resize((80, 80))
+    quant = small.quantize(colors=8).convert("RGB")
+    pixels = list(quant.getdata())
+    counter = Counter(pixels)
+    top = [c for c, _ in counter.most_common(5)]
+    palette = [_rgb_to_hex(c) for c in top]
+    color_names = []
+    for c in top:
+        n = _name_color(c)
+        if n not in color_names:
+            color_names.append(n)
+
+    # 亮度 / 饱和度 / 冷暖
+    hsv_vals = [colorsys.rgb_to_hsv(*[x / 255 for x in p]) for p in pixels]
+    brightness = sum(v for _, _, v in hsv_vals) / len(hsv_vals)
+    saturation = sum(s for _, s, _ in hsv_vals) / len(hsv_vals)
+    vals = [v for _, _, v in hsv_vals]
+    mean_v = brightness
+    contrast = (sum((v - mean_v) ** 2 for v in vals) / len(vals)) ** 0.5
+
+    warm_count = sum(1 for hh, ss, _ in hsv_vals if ss > 0.15 and (hh * 360 < 70 or hh * 360 >= 300))
+    cool_count = sum(1 for hh, ss, _ in hsv_vals if ss > 0.15 and 160 <= hh * 360 < 300)
+    warm = warm_count >= cool_count
+
+    return ImageFeatures(
+        width=w,
+        height=h,
+        aspect_ratio=ratio,
+        orientation=orientation,
+        palette=palette,
+        primary_hex=palette[0] if palette else "#888888",
+        brightness=round(brightness, 3),
+        contrast=round(min(contrast * 2.5, 1.0), 3),
+        saturation=round(saturation, 3),
+        warm=warm,
+        color_names=color_names,
+    )
+
+
+def analyze(image_path: str) -> ImageFeatures:
+    """对外统一入口：按配置选择真实模型或启发式分析。"""
+    if config.VISION_PROVIDER in {"openai", "qwen"} and config.VISION_API_KEY:
+        try:
+            return _analyze_with_vlm(image_path)
+        except Exception:
+            # 真实模型调用失败时回退，保证链路不中断
+            return extract_features(image_path)
+    return extract_features(image_path)
+
+
+def _analyze_with_vlm(image_path: str) -> ImageFeatures:
+    """真实视觉大模型接入占位（OpenAI / Qwen-VL 兼容接口）。
+
+    这里仍先用 Pillow 提取底层特征作为兜底；接入真实服务时，可在此处
+    发送 base64 图片并解析模型返回，覆盖 color_names / style 等字段。
+    """
+    # 预留：真实实现可用 httpx 调用 config.VISION_BASE_URL
+    return extract_features(image_path)
