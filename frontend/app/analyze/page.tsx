@@ -112,6 +112,18 @@ export default function AnalyzePage() {
                   <div className="mt-1 text-sm">{a.light.type}</div>
                   <p className="mt-1 text-xs text-gray-500">{a.light.description}</p>
                 </Card>
+                <Card>
+                  <div className="text-sm font-semibold text-gray-300">排版</div>
+                  <div className="mt-1 text-sm">{a.layout.layout_type}</div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {a.layout.alignment} · {a.layout.whitespace}
+                  </p>
+                </Card>
+                <Card>
+                  <div className="text-sm font-semibold text-gray-300">文字 / 字体</div>
+                  <div className="mt-1 text-sm">{a.typography.text_ratio}</div>
+                  <p className="mt-1 text-xs text-gray-500">{a.typography.font_tone}</p>
+                </Card>
               </div>
             </>
           )}

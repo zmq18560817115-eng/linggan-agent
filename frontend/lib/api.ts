@@ -16,6 +16,22 @@ export interface AnalysisData {
   color: { palette: string[]; primary: string; description: string };
   composition: { type: string; description: string };
   light: { type: string; description: string };
+  layout: {
+    layout_type: string;
+    alignment: string;
+    hierarchy: string[];
+    whitespace: string;
+    focal: string;
+    description: string;
+  };
+  typography: {
+    title_treatment: string;
+    font_tone: string;
+    size_contrast: string;
+    pairing: string;
+    text_ratio: string;
+    description: string;
+  };
   style: { style_tags: string[]; mood_keywords: string[]; brand_position: string };
   design_rules: { why_good: string[]; reusable_methods: string[] };
   material: string;

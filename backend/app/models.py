@@ -73,6 +73,9 @@ class Analysis(Base):
     color = Column(Text, default="{}")       # 色彩体系
     composition = Column(Text, default="{}") # 构图方式
     light = Column(Text, default="{}")       # 光影语言
+    material = Column(Text, default="")      # 材质表现
+    layout = Column(Text, default="{}")      # 排版
+    typography = Column(Text, default="{}")  # 文字 / 标题 / 字体
     style = Column(Text, default="{}")       # 视觉风格 JSON
     design_rules = Column(Text, default="{}")  # 设计规则
     prompt = Column(Text, default="")        # AI 绘图提示词

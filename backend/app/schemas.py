@@ -24,6 +24,28 @@ class Light(BaseModel):
     description: str = ""
 
 
+class Layout(BaseModel):
+    """排版拆解。"""
+
+    layout_type: str = ""            # 版式类型（满版/中轴/分栏/网格/留白...）
+    alignment: str = ""              # 对齐方式
+    hierarchy: list[str] = []        # 信息层级（主标题>副标题>正文...）
+    whitespace: str = ""             # 留白策略
+    focal: str = ""                  # 视觉重心 / 阅读引导路径
+    description: str = ""
+
+
+class Typography(BaseModel):
+    """文字 / 标题 / 字体拆解。"""
+
+    title_treatment: str = ""        # 标题处理方式
+    font_tone: str = ""              # 字体调性建议（无衬线/衬线/手写...）
+    size_contrast: str = ""          # 字号层级对比
+    pairing: str = ""                # 中英文 / 主辅字体搭配
+    text_ratio: str = ""             # 文字占比（重文字/图文均衡/以图为主）
+    description: str = ""
+
+
 class VisualStyle(BaseModel):
     style_tags: list[str] = []       # 风格标签
     mood_keywords: list[str] = []    # 情绪关键词
@@ -50,6 +72,8 @@ class AnalysisResult(BaseModel):
     composition: Composition
     light: Light
     material: str = ""               # 材质表现
+    layout: Layout                   # 排版
+    typography: Typography           # 文字 / 标题 / 字体
     design_rules: DesignRules
     prompt: str = ""                 # AI 绘图提示词
     summary: str = ""                # 一句话总结

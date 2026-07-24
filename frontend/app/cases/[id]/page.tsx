@@ -81,6 +81,52 @@ export default function CaseDetail() {
             </div>
 
             <Card>
+              <div className="mb-2 text-sm font-semibold text-gray-300">排版 · 版式结构</div>
+              <div className="flex flex-wrap gap-1.5">
+                <Tag>{a.layout.layout_type}</Tag>
+                <Tag>{a.layout.alignment}</Tag>
+              </div>
+              <div className="mt-3 text-xs text-gray-400">信息层级</div>
+              <ol className="mt-1 space-y-1 text-sm text-gray-300">
+                {a.layout.hierarchy.map((h, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-indigo-400">{i + 1}</span>
+                    <span>{h}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-2 text-xs text-gray-500">
+                留白：{a.layout.whitespace}；{a.layout.focal}
+              </p>
+            </Card>
+
+            <Card>
+              <div className="mb-2 text-sm font-semibold text-gray-300">文字 · 标题 · 字体</div>
+              <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                <div>
+                  <div className="text-xs text-gray-500">标题处理</div>
+                  <div>{a.typography.title_treatment}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">字体调性</div>
+                  <div>{a.typography.font_tone}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">字号对比</div>
+                  <div>{a.typography.size_contrast}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">文字占比</div>
+                  <div>{a.typography.text_ratio}</div>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-xs text-gray-500">字体搭配</div>
+                  <div>{a.typography.pairing}</div>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
               <div className="mb-2 text-sm font-semibold text-gray-300">设计规则</div>
               <div className="text-xs text-gray-400">为什么优秀</div>
               <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-300">

@@ -5,7 +5,7 @@
 """
 from __future__ import annotations
 
-from ..schemas import CaseBasics, ColorSystem, Light, VisualStyle
+from ..schemas import CaseBasics, ColorSystem, Layout, Light, Typography, VisualStyle
 from ..vision_provider import ImageFeatures
 
 
@@ -16,6 +16,8 @@ def run(
     color: ColorSystem,
     light: Light,
     material: str,
+    layout: Layout,
+    typography: Typography,
 ) -> str:
     tone = "warm tones" if features.warm else "cool tones"
     parts = [
@@ -24,6 +26,8 @@ def run(
         f"色彩：{'、'.join(features.color_names[:3]) or '中性色'}（{tone}），主色 {color.primary}",
         f"光影：{light.type}",
         f"材质：{material}",
+        f"排版：{layout.layout_type}，{layout.alignment}",
+        f"文字：{typography.title_treatment}，字体{typography.font_tone}",
         f"情绪：{'、'.join(style.mood_keywords)}",
         "高质量, 商业级, 精致细节, 8k",
     ]
@@ -31,7 +35,8 @@ def run(
     en = (
         f"{basics.industry} visual, {', '.join(style.style_tags)} style, "
         f"{tone}, primary color {color.primary}, {light.type} lighting, "
-        f"{material}, {', '.join(style.mood_keywords)} mood, "
+        f"{material}, {layout.layout_type} layout, {layout.alignment}, "
+        f"clear typographic hierarchy, {', '.join(style.mood_keywords)} mood, "
         "high quality, commercial grade, intricate details, 8k"
     )
     return f"{zh}\n\nEN: {en}"

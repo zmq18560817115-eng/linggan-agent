@@ -10,7 +10,9 @@ from ..schemas import (
     ColorSystem,
     Composition,
     DesignRules,
+    Layout,
     Light,
+    Typography,
     VisualStyle,
 )
 from ..vision_provider import ImageFeatures
@@ -23,6 +25,8 @@ def run(
     color: ColorSystem,
     composition: Composition,
     light: Light,
+    layout: Layout,
+    typography: Typography,
 ) -> DesignRules:
     why: list[str] = []
     methods: list[str] = []
@@ -39,7 +43,17 @@ def run(
         methods.append("用相近明度过渡与留白，营造呼吸感。")
 
     why.append(f"{'、'.join(style.style_tags)}的风格与「{basics.industry}」定位高度契合。")
+
+    # 排版 / 文字层面的规律
+    if "留白" in layout.layout_type or "中轴" in layout.layout_type:
+        why.append(f"{layout.layout_type}让信息主次分明，标题—正文层级清晰、阅读不费力。")
+    else:
+        why.append(f"{layout.layout_type}承载了较大信息量却不显杂乱，靠对齐与层级维持了秩序。")
+    why.append(f"文字采用{typography.title_treatment}，{typography.size_contrast}，强化了信息层级。")
+
     methods.append(f"复用 {composition.type} 的构图与 {light.type} 的光影，保持系列一致性。")
+    methods.append(f"排版沿用「{layout.layout_type} + {layout.alignment}」，信息层级：{' → '.join(layout.hierarchy)}。")
+    methods.append(f"标题处理：{typography.title_treatment}；字体调性统一为「{typography.font_tone}」。")
     methods.append(f"沿用情绪关键词「{ '、'.join(style.mood_keywords) }」统一整套视觉语气。")
 
     return DesignRules(why_good=why, reusable_methods=methods)

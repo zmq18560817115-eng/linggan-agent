@@ -14,6 +14,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 
 from PIL import Image as PILImage
+from PIL import ImageFilter
 
 from . import config
 
@@ -33,6 +34,11 @@ class ImageFeatures:
     saturation: float = 0.5   # 0~1
     warm: bool = False        # 冷暖倾向
     color_names: list[str] = field(default_factory=list)
+    # —— 排版/文字相关特征（基于边缘密度估计）——
+    complexity: float = 0.5   # 画面整体繁简度（边缘密度）0~1
+    band_activity: tuple[float, float, float] = (0.0, 0.0, 0.0)  # 上/中/下三段活跃度
+    col_activity: tuple[float, float, float] = (0.0, 0.0, 0.0)   # 左/中/右三列活跃度
+    text_density: float = 0.0  # 文字/细节密度估计 0~1
 
 
 def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
@@ -103,6 +109,30 @@ def extract_features(image_path: str) -> ImageFeatures:
     cool_count = sum(1 for hh, ss, _ in hsv_vals if ss > 0.15 and 160 <= hh * 360 < 300)
     warm = warm_count >= cool_count
 
+    # —— 边缘密度分析：用于推断排版结构与文字/标题区域 ——
+    gray = img.convert("L").resize((120, 120))
+    edges = gray.filter(ImageFilter.FIND_EDGES)
+    ep = list(edges.getdata())
+    W = H = 120
+    overall = sum(ep) / len(ep) / 255.0
+    # 三段（上/中/下）活跃度
+    band = [0.0, 0.0, 0.0]
+    for i in range(3):
+        seg = ep[i * W * (H // 3):(i + 1) * W * (H // 3)]
+        band[i] = round(sum(seg) / len(seg) / 255.0, 3)
+    # 三列（左/中/右）活跃度
+    col = [0.0, 0.0, 0.0]
+    col_sum = [0, 0, 0]
+    col_cnt = [0, 0, 0]
+    for y in range(H):
+        for x in range(W):
+            c = 0 if x < W // 3 else (1 if x < 2 * W // 3 else 2)
+            col_sum[c] += ep[y * W + x]
+            col_cnt[c] += 1
+    col = [round(col_sum[i] / col_cnt[i] / 255.0, 3) for i in range(3)]
+    # 文字密度：高边缘像素占比
+    text_density = round(sum(1 for v in ep if v > 60) / len(ep), 3)
+
     return ImageFeatures(
         width=w,
         height=h,
@@ -115,6 +145,10 @@ def extract_features(image_path: str) -> ImageFeatures:
         saturation=round(saturation, 3),
         warm=warm,
         color_names=color_names,
+        complexity=round(min(overall * 2.5, 1.0), 3),
+        band_activity=(band[0], band[1], band[2]),
+        col_activity=(col[0], col[1], col[2]),
+        text_density=text_density,
     )
 
 
