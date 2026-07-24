@@ -1,10 +1,12 @@
 """FastAPI 应用入口（对应技术方案「三、系统整体架构」的后端 API 层）。"""
 from __future__ import annotations
 
+import os
+import tempfile
 import uuid
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -12,7 +14,7 @@ from sqlalchemy.orm import Session
 from . import config, crud, models
 from .agents import run_pipeline
 from .database import get_db, init_db
-from .schemas import CaseOut, RequirementInput, VisualDirection
+from .schemas import AnalysisResult, CaseOut, VisualDirection
 
 app = FastAPI(
     title="AI视觉拆解 Agent",
@@ -103,10 +105,31 @@ def list_tags(db: Session = Depends(get_db)):
     ]
 
 
+def _analyze_reference(file: UploadFile, data: bytes) -> AnalysisResult:
+    """对上传的意向图做视觉拆解（不落库，仅用于推荐）。"""
+    ext = Path(file.filename or "").suffix or ".png"
+    tmp = tempfile.NamedTemporaryFile(suffix=ext, delete=False)
+    try:
+        tmp.write(data)
+        tmp.close()
+        return run_pipeline(tmp.name)
+    finally:
+        os.unlink(tmp.name)
+
+
 @app.post("/api/recommend", response_model=VisualDirection)
-def recommend_direction(payload: RequirementInput, db: Session = Depends(get_db)):
-    """需求生成页：需求文本 → 推荐视觉方向（对应「未来升级 V3.0」雏形）。"""
-    text = payload.text.lower()
+async def recommend_direction(
+    text: str = Form(""),
+    industry: str = Form(""),
+    file: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+):
+    """需求生成页：需求文本（+ 可选意向图）→ 推荐视觉方向与绘图提示词。
+
+    对应技术方案「未来升级 V3.0」：需求输入 → 视觉方向 → 意向图生成。
+    上传意向图时，会先对其做视觉拆解，并把风格/色彩/排版融合进推荐。
+    """
+    low = text.lower()
     keyword_map = {
         "科技": ["科技感", "冷调", "极简"],
         "高端": ["高级感", "克制", "低饱和"],
@@ -116,8 +139,23 @@ def recommend_direction(payload: RequirementInput, db: Session = Depends(get_db)
     }
     hit_tags: list[str] = []
     for kw, tags in keyword_map.items():
-        if kw in text or kw in payload.industry:
+        if kw in low or kw in industry:
             hit_tags.extend(tags)
+
+    # —— 解析意向图（若有）——
+    ref: AnalysisResult | None = None
+    if file is not None and (file.filename or ""):
+        data = await file.read()
+        if data:
+            if not (file.content_type or "").startswith("image/"):
+                raise HTTPException(status_code=400, detail="意向图必须是图片文件")
+            try:
+                ref = _analyze_reference(file, data)
+            except Exception as exc:  # noqa: BLE001
+                raise HTTPException(status_code=500, detail=f"意向图解析失败：{exc}") from exc
+            # 参考图的风格与情绪并入推荐标签（权重更高，放前面）
+            hit_tags = ref.style.style_tags + ref.style.mood_keywords[:2] + hit_tags
+
     if not hit_tags:
         hit_tags = ["高级感", "极简", "克制"]
     hit_tags = list(dict.fromkeys(hit_tags))
@@ -130,18 +168,52 @@ def recommend_direction(payload: RequirementInput, db: Session = Depends(get_db)
         if len(refs) >= 4:
             break
 
-    directions = [
-        f"主打「{hit_tags[0]}」风格，" + ("冷色科技调" if "科技感" in hit_tags else "统一低饱和色板"),
-        f"构图建议：居中聚焦 + 留白，突出核心信息",
-        f"情绪关键词：{'、'.join(hit_tags[1:3]) or '克制、干净'}",
-    ]
-    prompt = (
-        f"{payload.industry or '品牌'}视觉，{'、'.join(hit_tags)}风格，"
-        "高质量, 商业级, 精致细节, 8k"
-    )
+    # —— 组织方向与提示词 ——
+    directions: list[str] = []
+    if ref is not None:
+        directions.append(
+            f"延续意向图调性：{'、'.join(ref.style.style_tags)}；"
+            f"沿用其{ref.layout.layout_type}排版与{ref.color.description}"
+        )
+        directions.append(
+            f"色板参考意向图主色 {ref.color.primary}（{'、'.join(ref.color.palette[:3])}），"
+            "结合需求做微调"
+        )
+        directions.append(
+            f"标题/字体建议：{ref.typography.title_treatment}，字体调性「{ref.typography.font_tone}」"
+        )
+        directions.append(f"情绪关键词：{'、'.join(hit_tags[:4])}")
+        palette_hint = "、".join(ref.color.palette[:4])
+        prompt = (
+            f"{industry or '品牌'}视觉，{'、'.join(hit_tags)}风格，"
+            f"参考色板 {palette_hint}（主色 {ref.color.primary}），"
+            f"{ref.layout.layout_type}排版，{ref.light.type}光影，"
+            f"字体{ref.typography.font_tone}，"
+            + (f"需求：{text}，" if text else "")
+            + "高质量, 商业级, 精致细节, 8k"
+        )
+    else:
+        directions = [
+            f"主打「{hit_tags[0]}」风格，"
+            + ("冷色科技调" if "科技感" in hit_tags else "统一低饱和色板"),
+            "构图建议：居中聚焦 + 留白，突出核心信息",
+            f"情绪关键词：{'、'.join(hit_tags[1:3]) or '克制、干净'}",
+        ]
+        prompt = (
+            f"{industry or '品牌'}视觉，{'、'.join(hit_tags)}风格，"
+            + (f"需求：{text}，" if text else "")
+            + "高质量, 商业级, 精致细节, 8k"
+        )
+
     return VisualDirection(
         directions=directions,
         recommended_tags=hit_tags,
         reference_case_ids=refs,
         prompt=prompt,
+        has_reference=ref is not None,
+        reference_style=ref.style.style_tags if ref else [],
+        reference_palette=ref.color.palette if ref else [],
+        reference_layout=ref.layout.layout_type if ref else "",
+        reference_font=ref.typography.font_tone if ref else "",
+        reference_summary=ref.summary if ref else "",
     )

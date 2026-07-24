@@ -77,17 +77,26 @@ export const api = {
     fetch(`/api/tags`, { cache: "no-store" }).then((r) =>
       j<{ id: number; name: string; category: string; count: number }[]>(r)
     ),
-  recommend: (text: string, industry = "") =>
-    fetch(`/api/recommend`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, industry }),
-    }).then((r) =>
-      j<{
-        directions: string[];
-        recommended_tags: string[];
-        reference_case_ids: number[];
-        prompt: string;
-      }>(r)
-    ),
+  recommend: (text: string, industry = "", file?: File | null) => {
+    const fd = new FormData();
+    fd.append("text", text);
+    fd.append("industry", industry);
+    if (file) fd.append("file", file);
+    return fetch(`/api/recommend`, { method: "POST", body: fd }).then((r) =>
+      j<RecommendResult>(r)
+    );
+  },
 };
+
+export interface RecommendResult {
+  directions: string[];
+  recommended_tags: string[];
+  reference_case_ids: number[];
+  prompt: string;
+  has_reference: boolean;
+  reference_style: string[];
+  reference_palette: string[];
+  reference_layout: string;
+  reference_font: string;
+  reference_summary: string;
+}

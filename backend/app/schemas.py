@@ -132,3 +132,10 @@ class VisualDirection(BaseModel):
     recommended_tags: list[str]
     reference_case_ids: list[int]
     prompt: str
+    # —— 若上传了意向图，返回对参考图的视觉解析 ——
+    has_reference: bool = False
+    reference_style: list[str] = []       # 参考图风格标签
+    reference_palette: list[str] = []     # 参考图主色板
+    reference_layout: str = ""            # 参考图版式
+    reference_font: str = ""              # 参考图字体调性
+    reference_summary: str = ""           # 参考图一句话解析
