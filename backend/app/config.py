@@ -32,6 +32,19 @@ def vlm_enabled() -> bool:
     """
     return VISION_PROVIDER not in ("", "mock") and bool(VISION_API_KEY)
 
+
+# 文本推理 / 需求解读大模型（可选，OpenAI 兼容；如火山引擎方舟）
+#   用于：需求文本解读、把概论聚合数据写成设计方法论
+#   LLM_API_KEY / LLM_MODEL 必填即启用；Base URL 默认火山方舟
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
+LLM_MODEL = os.getenv("LLM_MODEL", "")  # 火山填「接入点ID ep-xxxx」或模型名
+
+
+def llm_enabled() -> bool:
+    """是否启用文本推理模型：配置了 API Key 与模型/接入点。"""
+    return bool(LLM_API_KEY and LLM_MODEL)
+
 # 允许的前端跨域来源
 CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"

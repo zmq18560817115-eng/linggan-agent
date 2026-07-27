@@ -95,6 +95,10 @@ export const api = {
     ),
   concept: () =>
     fetch(`/api/concept`, { cache: "no-store" }).then((r) => j<ConceptData>(r)),
+  methodology: () =>
+    fetch(`/api/concept/methodology`, { method: "POST" }).then((r) =>
+      j<{ enabled: boolean; methodology: string; model?: string; note?: string }>(r)
+    ),
   recommend: (text: string, industry = "", file?: File | null) => {
     const fd = new FormData();
     fd.append("text", text);

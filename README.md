@@ -140,6 +140,20 @@ export VISION_MODEL=<接入点ID ep-xxxx 或 doubao-vision 模型名>
 - 配置后仅语义层用大模型；真实色板与硬版式参数仍由 Pillow 精确测量；调用失败自动回退。
 - 拆解规则与实现细节见 [docs/拆解规则说明.md](./docs/拆解规则说明.md)。
 
+### 文本推理 / 需求解读模型（可选）
+
+用于「设计概论 → AI 生成设计方法论」与「需求生成 → 需求解读」。与视觉模型分开配置：
+
+```bash
+export LLM_API_KEY=<火山方舟 API Key>
+export LLM_BASE_URL=https://ark.cn-beijing.volces.com/api/v3   # 默认即此，可省略
+export LLM_MODEL=<接入点ID ep-xxxx 或模型名>
+```
+
+- 兼容任意 OpenAI 兼容文本服务；`GET /api/health` 的 `llm_enabled` 可确认是否启用。
+- 未配置时：概论方法论按钮提示需配置，需求生成回退到关键词解读。
+- ⚠️ 凭证只通过环境变量注入，请勿写入代码或提交到仓库。
+
 ## 路线图
 
 - **V1.0（当前）**：图片上传、AI 拆解、案例卡入库、标签检索、需求推荐。

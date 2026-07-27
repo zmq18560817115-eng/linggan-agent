@@ -27,9 +27,61 @@ function Bars({ items }: { items: DistItem[] }) {
   );
 }
 
+function MiniMarkdown({ text }: { text: string }) {
+  const lines = text.split("\n");
+  const render = (s: string) =>
+    s.split(/(\*\*[^*]+\*\*)/g).map((seg, i) =>
+      seg.startsWith("**") && seg.endsWith("**") ? (
+        <strong key={i} className="text-gray-100">
+          {seg.slice(2, -2)}
+        </strong>
+      ) : (
+        <span key={i}>{seg}</span>
+      )
+    );
+  return (
+    <div className="space-y-1.5 text-sm text-gray-300">
+      {lines.map((ln, i) => {
+        if (/^###\s/.test(ln))
+          return <h4 key={i} className="mt-3 font-semibold text-gray-200">{render(ln.replace(/^###\s/, ""))}</h4>;
+        if (/^##\s/.test(ln))
+          return <h3 key={i} className="mt-4 text-base font-semibold text-indigo-300">{render(ln.replace(/^##\s/, ""))}</h3>;
+        if (/^#\s/.test(ln))
+          return <h2 key={i} className="mt-2 text-lg font-bold">{render(ln.replace(/^#\s/, ""))}</h2>;
+        if (/^[-*]\s/.test(ln))
+          return <li key={i} className="ml-5 list-disc">{render(ln.replace(/^[-*]\s/, ""))}</li>;
+        if (ln.trim() === "") return <div key={i} className="h-1" />;
+        return <p key={i}>{render(ln)}</p>;
+      })}
+    </div>
+  );
+}
+
 export default function ConceptPage() {
   const [d, setD] = useState<ConceptData | null>(null);
   const [err, setErr] = useState("");
+  const [methodology, setMethodology] = useState("");
+  const [mLoading, setMLoading] = useState(false);
+  const [mNote, setMNote] = useState("");
+
+  const genMethodology = async () => {
+    setMLoading(true);
+    setMNote("");
+    try {
+      const r = await api.methodology();
+      if (!r.enabled) {
+        setMNote("未配置文本大模型（LLM_*）。在后端设置 LLM_API_KEY 与 LLM_MODEL 后即可生成。");
+      } else if (!r.methodology) {
+        setMNote(r.note || "暂无法生成。");
+      } else {
+        setMethodology(r.methodology);
+      }
+    } catch {
+      setMNote("生成失败，请稍后重试或检查模型配置。");
+    } finally {
+      setMLoading(false);
+    }
+  };
 
   useEffect(() => {
     api
@@ -65,6 +117,35 @@ export default function ConceptPage() {
         </Card>
       ) : (
         <>
+          {/* AI 设计方法论 */}
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">AI 设计方法论</h2>
+              <button
+                onClick={genMethodology}
+                disabled={mLoading}
+                className="rounded-lg bg-indigo-500 px-4 py-1.5 text-sm font-medium hover:bg-indigo-400 disabled:opacity-40"
+              >
+                {mLoading ? "生成中…" : methodology ? "重新生成" : "AI 生成设计方法论"}
+              </button>
+            </div>
+            {mNote && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
+                {mNote}
+              </div>
+            )}
+            {methodology && (
+              <Card>
+                <MiniMarkdown text={methodology} />
+              </Card>
+            )}
+            {!methodology && !mNote && (
+              <p className="text-sm text-gray-500">
+                点击右上角，用大模型把下面的数据写成一份团队专属、成体系的设计方法论。
+              </p>
+            )}
+          </section>
+
           {/* 提炼的设计原则 */}
           <section>
             <h2 className="mb-3 text-lg font-semibold">提炼的设计原则</h2>

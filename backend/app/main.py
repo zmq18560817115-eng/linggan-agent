@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from . import concept, config, crud, models, overlay
+from . import concept, config, crud, llm, models, overlay
 from .agents import run_pipeline
 from .database import get_db, init_db
 from .schemas import AnalysisResult, CaseOut, VisualDirection
@@ -47,6 +47,8 @@ def health() -> dict:
         "vision_provider": config.VISION_PROVIDER,
         "vlm_enabled": vlm_on,
         "model": config.VISION_MODEL if vlm_on else "启发式规则",
+        "llm_enabled": config.llm_enabled(),
+        "llm_model": config.LLM_MODEL if config.llm_enabled() else "",
     }
 
 
@@ -143,6 +145,16 @@ def _analyze_reference(file: UploadFile, data: bytes) -> AnalysisResult:
 def get_concept(db: Session = Depends(get_db)):
     """设计视觉概论：跨案例聚合出的分布画像、视觉 DNA 与提炼的设计原则。"""
     return concept.build_concept(db)
+
+
+@app.post("/api/concept/methodology")
+def concept_methodology(db: Session = Depends(get_db)):
+    """用文本大模型把聚合数据写成成体系的设计方法论（需配置 LLM_*）。"""
+    data = concept.build_concept(db)
+    try:
+        return concept.synthesize_methodology(data)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"方法论生成失败：{exc}") from exc
 
 
 @app.post("/api/recommend", response_model=VisualDirection)
@@ -249,6 +261,37 @@ async def recommend_direction(
             + (f"需求：{text}，" if text else "")
             + "高质量, 商业级, 精致细节, 8k"
         )
+
+    # 需求解读增强：配置了文本模型时，用其把需求+意向图解析成更贴合的方向与提示词
+    if config.llm_enabled() and (text.strip() or ref is not None):
+        try:
+            ref_ctx = ""
+            if ref is not None:
+                ref_ctx = (
+                    f"意向图解析：版式 {ref.layout.layout_type}/{ref.layout.grid_columns}，"
+                    f"风格 {'、'.join(ref.style.style_tags)}，主色 {ref.color.primary}。"
+                )
+            j = llm.chat_json(
+                [
+                    {"role": "system", "content": "你是资深视觉设计顾问，只输出 JSON，不要多余文字。"},
+                    {
+                        "role": "user",
+                        "content": (
+                            f"需求：{text or '（仅意向图，无文字需求）'}；行业：{industry or '未指定'}；"
+                            f"{ref_ctx}参考标签：{'、'.join(hit_tags)}。\n"
+                            '请输出 JSON：{"directions":["3~4 条以版式为主、风格为辅的视觉方向"],'
+                            '"prompt":"一条可直接用于 AI 绘图的中文提示词，版式为主风格为辅"}'
+                        ),
+                    },
+                ],
+                temperature=0.5,
+            )
+            if isinstance(j.get("directions"), list) and j["directions"]:
+                directions = [str(x) for x in j["directions"]]
+            if j.get("prompt"):
+                prompt = str(j["prompt"])
+        except Exception:
+            pass  # 模型不可用时保留启发式结果
 
     return VisualDirection(
         directions=directions,

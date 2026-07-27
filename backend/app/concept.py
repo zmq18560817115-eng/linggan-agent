@@ -11,7 +11,7 @@ from collections import Counter
 
 from sqlalchemy.orm import Session
 
-from . import models
+from . import config, llm, models
 
 # 素材达到这个量级，概论才比较可信
 ENOUGH_THRESHOLD = 5
@@ -200,3 +200,51 @@ def build_concept(db: Session) -> dict:
         "principles": principles,
         "by_industry": by_industry,
     }
+
+
+def _digest(data: dict) -> str:
+    """把聚合数据压成给模型的简要文字，控制 token。"""
+    d = data["distributions"]
+
+    def fmt(items):
+        return "、".join(f"{x['name']}({x['pct']}%)" for x in items[:5]) or "无"
+
+    lines = [
+        f"案例总数：{data['total']}",
+        f"版式分布：{fmt(d['layout'])}",
+        f"风格分布：{fmt(d['style'])}",
+        f"栅格分布：{fmt(d['grid'])}",
+        f"色系分布：{fmt(d['color_family'])}",
+        f"行业分布：{fmt(d['industry'])}",
+        f"字体调性：{fmt(d['font'])}",
+        "分行业：" + "；".join(b["principle"] for b in data["by_industry"][:6]),
+    ]
+    return "\n".join(lines)
+
+
+def synthesize_methodology(data: dict) -> dict:
+    """用文本模型把聚合数据写成成体系的设计方法论（需配置 LLM）。"""
+    if not config.llm_enabled():
+        return {"enabled": False, "methodology": ""}
+    if data.get("total", 0) == 0:
+        return {"enabled": True, "methodology": "", "note": "暂无案例，无法生成方法论。"}
+
+    digest = _digest(data)
+    messages = [
+        {
+            "role": "system",
+            "content": "你是资深设计总监，擅长把团队的视觉数据提炼成成体系、可执行的设计方法论。",
+        },
+        {
+            "role": "user",
+            "content": (
+                "以下是我们团队案例库拆解后的聚合统计，请据此写一份**该团队专属的设计视觉方法论**。"
+                "要求：成体系、有洞察、可落地；用 Markdown，包含"
+                "『整体视觉基调』『版式与栅格规范』『色彩与字体基因』『分场景/行业建议』"
+                "『可复用的设计原则清单』几个小节；避免空话，结合具体数据。\n\n"
+                f"【聚合统计】\n{digest}"
+            ),
+        },
+    ]
+    text = llm.chat(messages, temperature=0.5, max_tokens=1800)
+    return {"enabled": True, "methodology": text, "model": config.LLM_MODEL}
