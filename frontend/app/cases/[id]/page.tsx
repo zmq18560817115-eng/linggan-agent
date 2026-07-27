@@ -9,6 +9,7 @@ export default function CaseDetail() {
   const [c, setC] = useState<CaseOut | null>(null);
   const [err, setErr] = useState("");
   const [copied, setCopied] = useState(false);
+  const [skeleton, setSkeleton] = useState(false);
 
   useEffect(() => {
     api
@@ -25,8 +26,33 @@ export default function CaseDetail() {
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_1fr]">
       <div>
         {c.image && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={c.image.url} alt={c.name} className="w-full rounded-xl border border-line" />
+          <div className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={skeleton ? `/api/cases/${c.id}/overlay` : c.image.url}
+              alt={c.name}
+              className="w-full rounded-xl border border-line"
+            />
+            <button
+              onClick={() => setSkeleton((s) => !s)}
+              className="absolute right-2 top-2 rounded-md bg-ink/80 px-2.5 py-1 text-xs text-gray-200 backdrop-blur hover:bg-ink"
+            >
+              {skeleton ? "查看原图" : "版式骨架"}
+            </button>
+          </div>
+        )}
+        {skeleton && (
+          <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-400">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-3 border border-[#818cf8]" />页边距/内容框
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-3 border border-[#34d399]" />纵向模块
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-3 border border-[#fbbf24]" />栅格列
+            </span>
+          </div>
         )}
         <div className="mt-4 flex flex-wrap gap-1.5">
           {c.tags.map((t) => (

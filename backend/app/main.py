@@ -6,12 +6,12 @@ import tempfile
 import uuid
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from . import config, crud, models
+from . import config, crud, models, overlay
 from .agents import run_pipeline
 from .database import get_db, init_db
 from .schemas import AnalysisResult, CaseOut, VisualDirection
@@ -93,6 +93,22 @@ def get_case(case_id: int, db: Session = Depends(get_db)):
     if not case:
         raise HTTPException(status_code=404, detail="案例不存在")
     return crud.serialize_case(case)
+
+
+@app.get("/api/cases/{case_id}/overlay")
+def case_layout_overlay(case_id: int, db: Session = Depends(get_db)):
+    """返回叠加了版式骨架（页边距/模块/栅格）的案例图 PNG。"""
+    case = db.query(models.Case).filter(models.Case.id == case_id).first()
+    if not case or not case.image:
+        raise HTTPException(status_code=404, detail="案例或图片不存在")
+    path = config.UPLOAD_DIR / Path(case.image.url).name
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="图片文件不存在")
+    try:
+        png = overlay.render_overlay(str(path))
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"骨架渲染失败：{exc}") from exc
+    return Response(content=png, media_type="image/png")
 
 
 @app.get("/api/tags")

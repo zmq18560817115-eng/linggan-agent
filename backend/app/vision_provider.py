@@ -99,6 +99,43 @@ def _count_groups(active: list[int], total: int, gap_frac: float = 0.04) -> int:
     return groups
 
 
+def _group_bounds(active: list[int], total: int, gap_frac: float) -> list[tuple[float, float]]:
+    """把连续活跃下标聚成组，返回每组的 (起, 止) 占比区间。"""
+    if not active:
+        return []
+    min_gap = max(2, int(total * gap_frac))
+    bounds: list[tuple[float, float]] = []
+    start = prev = active[0]
+    for cur in active[1:]:
+        if cur - prev > min_gap:
+            bounds.append((start / total, (prev + 1) / total))
+            start = cur
+        prev = cur
+    bounds.append((start / total, (prev + 1) / total))
+    return bounds
+
+
+def analyze_layout_regions(image_path: str) -> dict:
+    """返回用于绘制版式骨架的区域边界（均为 0~1 占比）：
+    内容框 bbox(上,左,下,右)、纵向模块条带 row_bands、栅格列 col_bands。"""
+    gray = PILImage.open(image_path).convert("L").resize((120, 120))
+    edges = gray.filter(ImageFilter.FIND_EDGES)
+    edges = edges.crop((2, 2, edges.width - 2, edges.height - 2))
+    W, H = edges.size
+    ep = list(edges.getdata())
+    row_prof = [sum(ep[y * W:(y + 1) * W]) for y in range(H)]
+    col_prof = [sum(ep[y * W + x] for y in range(H)) for x in range(W)]
+    ar = _active_indices(row_prof)
+    ac = _active_indices(col_prof)
+    row_bands = _group_bounds(ar, H, 0.05)
+    col_bands = _group_bounds(ac, W, 0.06)
+    if ar and ac:
+        bbox = (ar[0] / H, ac[0] / W, (ar[-1] + 1) / H, (ac[-1] + 1) / W)
+    else:
+        bbox = (0.1, 0.1, 0.9, 0.9)
+    return {"bbox": bbox, "row_bands": row_bands, "col_bands": col_bands}
+
+
 def _layout_metrics(row_prof, col_prof, H, W):
     """从行/列边缘投影推断硬版式参数：页边距、模块数、栅格列数、内容占比、内容框。"""
     ar = _active_indices(row_prof)
