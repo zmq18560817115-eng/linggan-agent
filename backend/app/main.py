@@ -285,6 +285,7 @@ async def recommend_direction(
                     },
                 ],
                 temperature=0.5,
+                max_tokens=900,
             )
             if isinstance(j.get("directions"), list) and j["directions"]:
                 directions = [str(x) for x in j["directions"]]

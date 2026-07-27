@@ -239,12 +239,12 @@ def synthesize_methodology(data: dict) -> dict:
             "role": "user",
             "content": (
                 "以下是我们团队案例库拆解后的聚合统计，请据此写一份**该团队专属的设计视觉方法论**。"
-                "要求：成体系、有洞察、可落地；用 Markdown，包含"
-                "『整体视觉基调』『版式与栅格规范』『色彩与字体基因』『分场景/行业建议』"
-                "『可复用的设计原则清单』几个小节；避免空话，结合具体数据。\n\n"
+                "要求：成体系、有洞察、可落地；结合具体数据、避免空话；**精炼，控制在 900 字以内**。"
+                "用 Markdown，包含『整体视觉基调』『版式与栅格规范』『色彩与字体基因』"
+                "『分场景/行业建议』『可复用的设计原则清单』几个小节。\n\n"
                 f"【聚合统计】\n{digest}"
             ),
         },
     ]
-    text = llm.chat(messages, temperature=0.5, max_tokens=1800)
+    text = llm.chat(messages, temperature=0.5, max_tokens=1200)
     return {"enabled": True, "methodology": text, "model": config.LLM_MODEL}

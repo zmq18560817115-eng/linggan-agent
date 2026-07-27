@@ -140,3 +140,6 @@ server {
 ```
 
 前端 Node 服务会自行把 `/api`、`/uploads` 反代到后端，因此只需暴露前端一个入口即可。
+
+> ⚠️ 「AI 生成设计方法论」等大模型接口是长耗时请求（可能 1~2 分钟）。若前面加了 Nginx，
+> 请调高读超时，避免 504：`proxy_read_timeout 300s; proxy_send_timeout 300s;`。

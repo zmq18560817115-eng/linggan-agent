@@ -126,7 +126,11 @@ export default function ConceptPage() {
                 disabled={mLoading}
                 className="rounded-lg bg-indigo-500 px-4 py-1.5 text-sm font-medium hover:bg-indigo-400 disabled:opacity-40"
               >
-                {mLoading ? "生成中…" : methodology ? "重新生成" : "AI 生成设计方法论"}
+                {mLoading
+                  ? "生成中…（约 1~2 分钟）"
+                  : methodology
+                  ? "重新生成"
+                  : "AI 生成设计方法论"}
               </button>
             </div>
             {mNote && (

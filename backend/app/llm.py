@@ -14,8 +14,16 @@ import httpx
 from . import config
 
 
-def chat(messages: list[dict], temperature: float = 0.4, max_tokens: int = 1500) -> str:
-    """调用文本模型，返回回复正文。失败抛异常，由上层回退。"""
+def chat(
+    messages: list[dict],
+    temperature: float = 0.4,
+    max_tokens: int = 1500,
+    timeout: float = 300.0,
+) -> str:
+    """调用文本模型，返回回复正文。失败抛异常，由上层回退。
+
+    timeout 默认放宽到 300s：长文本（如设计方法论）生成较慢，避免读超时。
+    """
     base = (config.LLM_BASE_URL or "https://ark.cn-beijing.volces.com/api/v3").rstrip("/")
     payload = {
         "model": config.LLM_MODEL,
@@ -27,7 +35,7 @@ def chat(messages: list[dict], temperature: float = 0.4, max_tokens: int = 1500)
         "Authorization": f"Bearer {config.LLM_API_KEY}",
         "Content-Type": "application/json",
     }
-    resp = httpx.post(f"{base}/chat/completions", json=payload, headers=headers, timeout=90)
+    resp = httpx.post(f"{base}/chat/completions", json=payload, headers=headers, timeout=timeout)
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
 
