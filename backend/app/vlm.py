@@ -23,7 +23,9 @@ SYSTEM_PROMPT = (
 )
 
 # 期望模型返回的 JSON 结构（作为提示，也用于解析）
-USER_TEMPLATE = """请分析这张设计图片，返回严格的 JSON（字段可空但需存在）：
+USER_TEMPLATE = """你是资深视觉设计分析师，请对这张设计图做**深度**拆解，返回严格 JSON（字段可空但需存在）。
+要求：判断具体、避免空话；点评与建议要专业、可操作。
+
 {{
   "image_type": "图片类型，如 海报/Banner/产品卡",
   "industry": "所属行业",
@@ -33,17 +35,24 @@ USER_TEMPLATE = """请分析这张设计图片，返回严格的 JSON（字段�
   "brand_position": "品牌定位",
   "layout_type": "版式类型，如 中轴型/分栏型/网格型/留白型",
   "alignment": "对齐方式",
-  "hierarchy": ["信息层级，从主到次，如 主标题/副标题/正文/辅助信息"],
+  "hierarchy": ["信息层级，从主到次"],
   "title_treatment": "标题处理方式",
-  "font_tone": "字体调性建议（无衬线/衬线/手写/几何等）",
+  "font_tone": "字体调性建议",
   "why_good": ["这张图为什么优秀，2~4 条"],
   "reusable_methods": ["可复用的设计方法，2~4 条"],
+  "target_audience": "目标受众画像",
+  "applicable_scenes": ["还适用于哪些场景，2~4 个"],
+  "color_roles": ["色彩角色与作用，如 主色#xx传达信任/点缀色#xx制造焦点"],
+  "composition_principles": ["用到的构图/版式原理，如 三分法/视觉动线Z型/负空间聚焦"],
+  "emotion_narrative": "画面传达的情绪与叙事（1~2 句）",
+  "critique": ["专业点评，含优点与不足，2~4 条"],
+  "improvement": ["具体可操作的提升建议，2~4 条"],
   "summary": "一句话总结",
   "prompt_zh": "可直接用于 AI 绘图的中文提示词（以版式为主、风格为辅）",
   "prompt_en": "对应英文提示词"
 }}
 
-供参考的客观测量（由程序从像素中精确算出，请结合但不要改写这些数值）：
+供参考的客观测量（由程序从像素中精确算出，请结合分析、不要改写这些数值）：
 - 主色板: {palette}
 - 冷暖/亮度: {tone}
 - 版式硬参数: 栅格 {grid_columns}，{modules}，{margins}

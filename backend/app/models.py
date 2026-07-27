@@ -78,6 +78,8 @@ class Analysis(Base):
     typography = Column(Text, default="{}")  # 文字 / 标题 / 字体
     style = Column(Text, default="{}")       # 视觉风格 JSON
     design_rules = Column(Text, default="{}")  # 设计规则
+    insights = Column(Text, default="")      # VLM 深度解析 JSON
+    analyzed_by = Column(String, default="启发式规则")  # 语义来源
     prompt = Column(Text, default="")        # AI 绘图提示词
 
     case = relationship("Case", back_populates="analysis")

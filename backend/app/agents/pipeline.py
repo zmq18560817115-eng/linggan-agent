@@ -10,7 +10,7 @@ import mimetypes
 from pathlib import Path
 
 from .. import config, vlm
-from ..schemas import AnalysisResult
+from ..schemas import AnalysisResult, DeepInsights
 from ..vision_provider import analyze
 from . import (
     design_agent,
@@ -134,6 +134,18 @@ def _augment_with_vlm(image_path, features, result: AnalysisResult) -> AnalysisR
         en = v.get("prompt_en", "")
         r.prompt = v["prompt_zh"] + (f"\n\nEN: {en}" if en else "")
     r.summary = pick("summary", r.summary)
+
+    # 深度解析
+    r.insights = DeepInsights(
+        target_audience=v.get("target_audience", ""),
+        applicable_scenes=v.get("applicable_scenes", []) or [],
+        color_roles=v.get("color_roles", []) or [],
+        composition_principles=v.get("composition_principles", []) or [],
+        emotion_narrative=v.get("emotion_narrative", ""),
+        critique=v.get("critique", []) or [],
+        improvement=v.get("improvement", []) or [],
+    )
+    r.analyzed_by = config.VISION_MODEL or config.VISION_PROVIDER
 
     # 名称与标签基于（可能被覆盖的）语义重算，保持排版优先
     r.name = f"{r.layout.layout_type}·{r.basics.industry}·{'/'.join(r.style.style_tags[:1])}案例"

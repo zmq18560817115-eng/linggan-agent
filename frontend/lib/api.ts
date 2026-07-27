@@ -40,6 +40,16 @@ export interface AnalysisData {
   };
   style: { style_tags: string[]; mood_keywords: string[]; brand_position: string };
   design_rules: { why_good: string[]; reusable_methods: string[] };
+  insights: {
+    target_audience: string;
+    applicable_scenes: string[];
+    color_roles: string[];
+    composition_principles: string[];
+    emotion_narrative: string;
+    critique: string[];
+    improvement: string[];
+  } | null;
+  analyzed_by: string;
   material: string;
   prompt: string;
 }

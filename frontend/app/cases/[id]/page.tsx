@@ -65,8 +65,21 @@ export default function CaseDetail() {
         <div>
           <h1 className="text-2xl font-bold">{c.name}</h1>
           <p className="mt-1 text-sm text-gray-400">{c.summary}</p>
-          <div className="mt-2 text-xs text-gray-500">
-            行业：{c.industry} · 场景：{c.scene}
+          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+            <span>行业：{c.industry} · 场景：{c.scene}</span>
+            {a?.analyzed_by && (
+              <span
+                className={`rounded-full px-2 py-0.5 ${
+                  a.analyzed_by === "启发式规则"
+                    ? "bg-panel text-gray-400"
+                    : "bg-indigo-500/20 text-indigo-300"
+                }`}
+              >
+                {a.analyzed_by === "启发式规则"
+                  ? "启发式规则解析"
+                  : `${a.analyzed_by} 深度解析`}
+              </span>
+            )}
           </div>
         </div>
 
@@ -177,6 +190,55 @@ export default function CaseDetail() {
                 <div className="mt-1 text-sm">{a.material}</div>
               </Card>
             </div>
+
+            {a.insights && (
+              <Card className="border-indigo-500/40">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="rounded bg-indigo-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                    AI 深度解析
+                  </span>
+                  <span className="text-xs text-gray-500">by {a.analyzed_by}</span>
+                </div>
+                <div className="space-y-3 text-sm">
+                  {a.insights.emotion_narrative && (
+                    <p className="text-gray-300">{a.insights.emotion_narrative}</p>
+                  )}
+                  {a.insights.target_audience && (
+                    <div>
+                      <div className="text-xs text-gray-500">目标受众</div>
+                      <div>{a.insights.target_audience}</div>
+                    </div>
+                  )}
+                  {a.insights.applicable_scenes.length > 0 && (
+                    <div>
+                      <div className="text-xs text-gray-500">适用场景</div>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {a.insights.applicable_scenes.map((s) => (
+                          <Tag key={s}>{s}</Tag>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {[
+                    ["色彩角色", a.insights.color_roles],
+                    ["构图原理", a.insights.composition_principles],
+                    ["专业点评", a.insights.critique],
+                    ["提升建议", a.insights.improvement],
+                  ].map(([label, items]) =>
+                    (items as string[]).length > 0 ? (
+                      <div key={label as string}>
+                        <div className="text-xs text-gray-500">{label as string}</div>
+                        <ul className="mt-1 list-disc space-y-1 pl-5 text-gray-300">
+                          {(items as string[]).map((x, i) => (
+                            <li key={i}>{x}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null
+                  )}
+                </div>
+              </Card>
+            )}
 
             <Card>
               <div className="mb-2 text-sm font-semibold text-gray-300">设计规则</div>

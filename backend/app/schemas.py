@@ -64,6 +64,18 @@ class DesignRules(BaseModel):
     reusable_methods: list[str] = []  # 可复用方法
 
 
+class DeepInsights(BaseModel):
+    """视觉大模型的深度语义解析（配置真实 VLM 时才有）。"""
+
+    target_audience: str = ""              # 目标受众
+    applicable_scenes: list[str] = []      # 适用场景
+    color_roles: list[str] = []            # 色彩角色（主/辅/点缀及其作用）
+    composition_principles: list[str] = [] # 构图原理
+    emotion_narrative: str = ""            # 情绪 / 叙事
+    critique: list[str] = []               # 专业点评
+    improvement: list[str] = []            # 提升建议
+
+
 class CaseBasics(BaseModel):
     image_type: str = ""             # 图片类型
     industry: str = ""               # 行业
@@ -86,6 +98,8 @@ class AnalysisResult(BaseModel):
     summary: str = ""                # 一句话总结
     name: str = ""                   # 案例名称
     tags: list[str] = []             # 汇总标签
+    insights: DeepInsights | None = None  # VLM 深度解析
+    analyzed_by: str = "启发式规则"   # 语义来源：启发式规则 / 模型名
 
 
 # ---------- API 出参 ----------

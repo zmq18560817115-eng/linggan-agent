@@ -43,6 +43,8 @@ def create_case_from_analysis(
         typography=result.typography.model_dump_json(),
         style=result.style.model_dump_json(),
         design_rules=result.design_rules.model_dump_json(),
+        insights=result.insights.model_dump_json() if result.insights else "",
+        analyzed_by=result.analyzed_by,
         prompt=result.prompt,
     )
     db.add(analysis)
@@ -68,6 +70,8 @@ def analysis_to_dict(analysis: models.Analysis | None) -> dict | None:
         "typography": json.loads(analysis.typography or "{}"),
         "style": json.loads(analysis.style or "{}"),
         "design_rules": json.loads(analysis.design_rules or "{}"),
+        "insights": json.loads(analysis.insights) if (analysis.insights or "") else None,
+        "analyzed_by": getattr(analysis, "analyzed_by", "") or "启发式规则",
         "material": getattr(analysis, "material", ""),
         "prompt": analysis.prompt or "",
     }

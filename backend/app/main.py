@@ -41,7 +41,13 @@ def _startup() -> None:
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "vision_provider": config.VISION_PROVIDER}
+    vlm_on = config.VISION_PROVIDER in {"openai", "qwen"} and bool(config.VISION_API_KEY)
+    return {
+        "status": "ok",
+        "vision_provider": config.VISION_PROVIDER,
+        "vlm_enabled": vlm_on,
+        "model": config.VISION_MODEL if vlm_on else "启发式规则",
+    }
 
 
 @app.post("/api/analyze", response_model=CaseOut)

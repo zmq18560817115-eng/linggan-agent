@@ -34,7 +34,13 @@ def _auto_migrate():
         return
     existing = {c["name"] for c in inspector.get_columns("analysis")}
     # 列名 -> 默认值
-    new_cols = {"material": "", "layout": "{}", "typography": "{}"}
+    new_cols = {
+        "material": "",
+        "layout": "{}",
+        "typography": "{}",
+        "insights": "",
+        "analyzed_by": "启发式规则",
+    }
     for col, default in new_cols.items():
         if col not in existing:
             with engine.begin() as conn:
