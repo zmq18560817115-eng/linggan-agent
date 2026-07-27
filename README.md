@@ -105,7 +105,9 @@ npm run dev        # 开发模式，http://localhost:3000
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/api/analyze` | 上传图片 → 运行流水线 → 生成并保存案例卡 |
+| POST | `/api/analyze` | 上传单图 → 运行流水线 → 生成并保存案例卡 |
+| POST | `/api/analyze/batch` | 批量上传多图 → 后台异步拆解，返回 batch_id |
+| GET  | `/api/analyze/batch/{id}` | 查询批量拆解进度 |
 | GET  | `/api/cases?q=&tag=` | 案例库检索（关键词 + 标签） |
 | GET  | `/api/cases/{id}` | 案例详情 |
 | GET  | `/api/tags` | 标签及案例数（热门风格） |

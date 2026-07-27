@@ -7,6 +7,7 @@ export function Nav() {
     { href: "/", label: "首页" },
     { href: "/cases", label: "案例库" },
     { href: "/analyze", label: "AI拆解" },
+    { href: "/batch", label: "批量上传" },
     { href: "/concept", label: "设计概论" },
     { href: "/generate", label: "需求生成" },
   ];

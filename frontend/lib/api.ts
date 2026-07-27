@@ -79,6 +79,25 @@ export const api = {
       j<CaseOut>(r)
     );
   },
+  analyzeBatch: (files: File[]) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append("files", f));
+    return fetch("/api/analyze/batch", { method: "POST", body: fd }).then((r) =>
+      j<{ batch_id: string; total: number }>(r)
+    );
+  },
+  batchStatus: (id: string) =>
+    fetch(`/api/analyze/batch/${id}`, { cache: "no-store" }).then((r) =>
+      j<{
+        batch_id: string;
+        total: number;
+        done: number;
+        failed: number;
+        status: string;
+        case_ids: number[];
+        errors: string[];
+      }>(r)
+    ),
   cases: (q = "", tag = "") => {
     const p = new URLSearchParams();
     if (q) p.set("q", q);

@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from . import concept, config, crud, llm, models, overlay
+from . import batch, concept, config, crud, llm, models, overlay
 from .agents import run_pipeline
 from .database import get_db, init_db
 from .schemas import AnalysisResult, CaseOut, VisualDirection
@@ -86,6 +86,43 @@ async def analyze_image(
 
     case = crud.create_case_from_analysis(db, image, result)
     return crud.serialize_case(case)
+
+
+@app.post("/api/analyze/batch")
+async def analyze_batch(
+    files: list[UploadFile] = File(...),
+    uploader: str = "anonymous",
+):
+    """批量上传：先落盘，起后台任务顺序拆解入库，返回 batch_id 供轮询进度。"""
+    items = []
+    for f in files:
+        if not (f.content_type or "").startswith("image/"):
+            continue
+        ext = Path(f.filename or "").suffix or ".png"
+        stored_name = f"{uuid.uuid4().hex}{ext}"
+        dest = config.UPLOAD_DIR / stored_name
+        dest.write_bytes(await f.read())
+        items.append(
+            {
+                "path": str(dest),
+                "url": f"/uploads/{stored_name}",
+                "filename": f.filename or stored_name,
+                "uploader": uploader,
+            }
+        )
+    if not items:
+        raise HTTPException(status_code=400, detail="没有有效的图片文件")
+    batch_id = batch.create_batch(items)
+    return {"batch_id": batch_id, "total": len(items)}
+
+
+@app.get("/api/analyze/batch/{batch_id}")
+def analyze_batch_status(batch_id: str):
+    """查询批量拆解进度。"""
+    b = batch.get_batch(batch_id)
+    if not b:
+        raise HTTPException(status_code=404, detail="批次不存在")
+    return {"batch_id": batch_id, **b}
 
 
 @app.get("/api/cases", response_model=list[CaseOut])
