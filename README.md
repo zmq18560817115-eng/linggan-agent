@@ -109,6 +109,7 @@ npm run dev        # 开发模式，http://localhost:3000
 | GET  | `/api/cases?q=&tag=` | 案例库检索（关键词 + 标签） |
 | GET  | `/api/cases/{id}` | 案例详情 |
 | GET  | `/api/tags` | 标签及案例数（热门风格） |
+| GET  | `/api/concept` | 设计视觉概论：跨案例聚合的分布/DNA/设计原则 |
 | POST | `/api/recommend` | 需求文本 → 推荐视觉方向 |
 
 ## 接入真实视觉大模型
@@ -127,6 +128,12 @@ export VISION_PROVIDER=qwen
 export VISION_API_KEY=sk-xxx
 export VISION_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 export VISION_MODEL=qwen-vl-max
+
+# 或 火山引擎 · 豆包视觉（Ark 方舟，OpenAI 兼容）
+export VISION_PROVIDER=volcengine
+export VISION_API_KEY=<火山方舟 API Key>
+export VISION_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+export VISION_MODEL=<接入点ID ep-xxxx 或 doubao-vision 模型名>
 ```
 
 - 未配置时自动使用离线启发式分析器，Demo 开箱即用。

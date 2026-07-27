@@ -15,13 +15,22 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 # 数据库（Demo 默认使用 SQLite；生产可切换 PostgreSQL / Supabase）
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'linggan.db'}")
 
-# 视觉模型服务配置（可选）
-#   VISION_PROVIDER: mock | openai | qwen
-#   VISION_API_KEY / VISION_BASE_URL / VISION_MODEL: 对应服务的凭证
+# 视觉模型服务配置（可选，OpenAI 兼容接口）
+#   VISION_PROVIDER: mock（默认，离线启发式）| openai | qwen | volcengine（火山引擎/豆包）| 任意自定义名
+#   VISION_API_KEY / VISION_BASE_URL / VISION_MODEL: 对应服务的凭证与地址
 VISION_PROVIDER = os.getenv("VISION_PROVIDER", "mock").lower()
 VISION_API_KEY = os.getenv("VISION_API_KEY", "")
 VISION_BASE_URL = os.getenv("VISION_BASE_URL", "")
 VISION_MODEL = os.getenv("VISION_MODEL", "")
+
+
+def vlm_enabled() -> bool:
+    """是否启用真实视觉大模型：非 mock 的 provider 且配置了 API Key。
+
+    只要是 OpenAI 兼容接口（GPT Vision / Qwen-VL / 火山引擎豆包 / 内网自建），
+    设好 provider 名 + Key + Base URL + Model 即可启用。
+    """
+    return VISION_PROVIDER not in ("", "mock") and bool(VISION_API_KEY)
 
 # 允许的前端跨域来源
 CORS_ORIGINS = os.getenv(

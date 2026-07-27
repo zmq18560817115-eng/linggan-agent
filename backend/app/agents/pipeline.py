@@ -23,7 +23,7 @@ from . import (
 
 
 def _vlm_enabled() -> bool:
-    return config.VISION_PROVIDER in {"openai", "qwen"} and bool(config.VISION_API_KEY)
+    return config.vlm_enabled()
 
 
 def run_pipeline(image_path: str) -> AnalysisResult:

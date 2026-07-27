@@ -93,6 +93,8 @@ export const api = {
     fetch(`/api/tags`, { cache: "no-store" }).then((r) =>
       j<{ id: number; name: string; category: string; count: number }[]>(r)
     ),
+  concept: () =>
+    fetch(`/api/concept`, { cache: "no-store" }).then((r) => j<ConceptData>(r)),
   recommend: (text: string, industry = "", file?: File | null) => {
     const fd = new FormData();
     fd.append("text", text);
@@ -103,6 +105,34 @@ export const api = {
     );
   },
 };
+
+export interface DistItem {
+  name: string;
+  count: number;
+  pct: number;
+}
+
+export interface ConceptData {
+  total: number;
+  enough: boolean;
+  threshold: number;
+  distributions: Record<string, DistItem[]>;
+  visual_dna: {
+    colors: { hex: string; count: number }[];
+    top_layout: string;
+    top_style: string;
+    top_grid: string;
+  };
+  principles: string[];
+  by_industry: {
+    industry: string;
+    count: number;
+    top_layouts: DistItem[];
+    top_styles: string[];
+    top_colors: string[];
+    principle: string;
+  }[];
+}
 
 export interface RecommendResult {
   directions: string[];

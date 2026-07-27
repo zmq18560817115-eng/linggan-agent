@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from . import config, crud, models, overlay
+from . import concept, config, crud, models, overlay
 from .agents import run_pipeline
 from .database import get_db, init_db
 from .schemas import AnalysisResult, CaseOut, VisualDirection
@@ -41,7 +41,7 @@ def _startup() -> None:
 
 @app.get("/api/health")
 def health() -> dict:
-    vlm_on = config.VISION_PROVIDER in {"openai", "qwen"} and bool(config.VISION_API_KEY)
+    vlm_on = config.vlm_enabled()
     return {
         "status": "ok",
         "vision_provider": config.VISION_PROVIDER,
@@ -137,6 +137,12 @@ def _analyze_reference(file: UploadFile, data: bytes) -> AnalysisResult:
         return run_pipeline(tmp.name)
     finally:
         os.unlink(tmp.name)
+
+
+@app.get("/api/concept")
+def get_concept(db: Session = Depends(get_db)):
+    """设计视觉概论：跨案例聚合出的分布画像、视觉 DNA 与提炼的设计原则。"""
+    return concept.build_concept(db)
 
 
 @app.post("/api/recommend", response_model=VisualDirection)
