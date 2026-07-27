@@ -35,9 +35,9 @@
 > 视觉拆解覆盖两大维度：**画面层**（色彩·构图·光影·材质）与 **信息层**（排版·信息层级·标题·字体），
 > 不止「风格像不像」，还回答「版面怎么排、字怎么放」。
 
-视觉底座 `vision_provider.py` 默认使用 **基于 Pillow 的启发式分析器**：从图片中
-提取真实主色板、亮度、对比度、冷暖与宽高比等特征，因此无需任何 API Key
-即可离线跑通完整链路。配置环境变量即可切换到真实视觉大模型（Qwen-VL / GPT Vision）。
+**拆解采用混合模式**（详见 [docs/拆解规则说明.md](./docs/拆解规则说明.md)）：
+- **客观特征层**（Pillow）：真实主色板、亮度、对比度、冷暖，以及页边距/栅格列数/模块数等**硬版式参数**——精确、可复现，无需任何 API Key 即可离线跑通。
+- **语义层**：默认用启发式规则；配置环境变量后切换到**真实视觉大模型**（GPT Vision / Qwen-VL / 内网自建），由模型负责语义理解，硬参数仍用像素测量值，调用失败自动回退。
 
 ## 技术选型
 
@@ -113,14 +113,25 @@ npm run dev        # 开发模式，http://localhost:3000
 
 ## 接入真实视觉大模型
 
+OpenAI 兼容接口，兼容 GPT Vision、Qwen-VL（DashScope 兼容模式）、内网自建服务（vLLM/LMDeploy 等）：
+
 ```bash
-export VISION_PROVIDER=openai      # 或 qwen
+# GPT Vision
+export VISION_PROVIDER=openai
 export VISION_API_KEY=sk-xxx
-export VISION_BASE_URL=https://...
+export VISION_BASE_URL=https://api.openai.com/v1
+export VISION_MODEL=gpt-4o-mini
+
+# 或 Qwen-VL（阿里云 DashScope 兼容模式）
+export VISION_PROVIDER=qwen
+export VISION_API_KEY=sk-xxx
+export VISION_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 export VISION_MODEL=qwen-vl-max
 ```
 
-未配置时自动使用离线启发式分析器，Demo 开箱即用。
+- 未配置时自动使用离线启发式分析器，Demo 开箱即用。
+- 配置后仅语义层用大模型；真实色板与硬版式参数仍由 Pillow 精确测量；调用失败自动回退。
+- 拆解规则与实现细节见 [docs/拆解规则说明.md](./docs/拆解规则说明.md)。
 
 ## 路线图
 

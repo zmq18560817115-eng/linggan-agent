@@ -6,6 +6,10 @@
 """
 from __future__ import annotations
 
+import mimetypes
+from pathlib import Path
+
+from .. import config, vlm
 from ..schemas import AnalysisResult
 from ..vision_provider import analyze
 from . import (
@@ -16,6 +20,10 @@ from . import (
     style_agent,
     vision_agent,
 )
+
+
+def _vlm_enabled() -> bool:
+    return config.VISION_PROVIDER in {"openai", "qwen"} and bool(config.VISION_API_KEY)
 
 
 def run_pipeline(image_path: str) -> AnalysisResult:
@@ -56,7 +64,7 @@ def run_pipeline(image_path: str) -> AnalysisResult:
         )
     )
 
-    return AnalysisResult(
+    result = AnalysisResult(
         basics=basics,
         style=style,
         color=color,
@@ -71,3 +79,70 @@ def run_pipeline(image_path: str) -> AnalysisResult:
         name=name,
         tags=tags,
     )
+
+    # 若配置了真实视觉大模型，用其语义理解增强结果（硬参数仍保留 Pillow 测量值）
+    if _vlm_enabled():
+        try:
+            result = _augment_with_vlm(image_path, features, result)
+        except Exception:
+            # 大模型不可用时静默回退到启发式结果，保证链路不中断
+            pass
+
+    return result
+
+
+def _augment_with_vlm(image_path, features, result: AnalysisResult) -> AnalysisResult:
+    """用视觉大模型的语义输出覆盖启发式结果，保留 Pillow 的硬版式/色板参数。"""
+    data = Path(image_path).read_bytes()
+    mime = mimetypes.guess_type(image_path)[0] or "image/png"
+    hints = {
+        "palette": features.palette,
+        "tone": ("暖调" if features.warm else "冷调") + f"，亮度{features.brightness}",
+        "grid_columns": result.layout.grid_columns,
+        "modules": result.layout.modules,
+        "margins": result.layout.margins,
+    }
+    v = vlm.analyze_image(data, mime, hints)
+
+    def pick(key: str, fallback):
+        val = v.get(key)
+        return val if val else fallback
+
+    r = result
+    # 基础信息
+    r.basics.image_type = pick("image_type", r.basics.image_type)
+    r.basics.industry = pick("industry", r.basics.industry)
+    r.basics.scene = pick("scene", r.basics.scene)
+    # 风格
+    r.style.style_tags = pick("style_tags", r.style.style_tags)
+    r.style.mood_keywords = pick("mood_keywords", r.style.mood_keywords)
+    r.style.brand_position = pick("brand_position", r.style.brand_position)
+    # 排版语义（硬参数 grid/margins 不动）
+    r.layout.layout_type = pick("layout_type", r.layout.layout_type)
+    r.layout.alignment = pick("alignment", r.layout.alignment)
+    r.layout.hierarchy = pick("hierarchy", r.layout.hierarchy)
+    # 文字
+    r.typography.title_treatment = pick("title_treatment", r.typography.title_treatment)
+    r.typography.font_tone = pick("font_tone", r.typography.font_tone)
+    # 设计规则
+    r.design_rules.why_good = pick("why_good", r.design_rules.why_good)
+    r.design_rules.reusable_methods = pick(
+        "reusable_methods", r.design_rules.reusable_methods
+    )
+    # 提示词 / 总结
+    if v.get("prompt_zh"):
+        en = v.get("prompt_en", "")
+        r.prompt = v["prompt_zh"] + (f"\n\nEN: {en}" if en else "")
+    r.summary = pick("summary", r.summary)
+
+    # 名称与标签基于（可能被覆盖的）语义重算，保持排版优先
+    r.name = f"{r.layout.layout_type}·{r.basics.industry}·{'/'.join(r.style.style_tags[:1])}案例"
+    r.tags = list(
+        dict.fromkeys(
+            [r.layout.layout_type, r.layout.alignment, r.typography.text_ratio]
+            + r.style.style_tags
+            + r.style.mood_keywords
+            + [r.basics.industry, r.basics.scene]
+        )
+    )
+    return r

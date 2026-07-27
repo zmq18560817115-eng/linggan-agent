@@ -16,8 +16,6 @@ from dataclasses import dataclass, field
 from PIL import Image as PILImage
 from PIL import ImageFilter
 
-from . import config
-
 
 @dataclass
 class ImageFeatures:
@@ -220,21 +218,9 @@ def extract_features(image_path: str) -> ImageFeatures:
 
 
 def analyze(image_path: str) -> ImageFeatures:
-    """对外统一入口：按配置选择真实模型或启发式分析。"""
-    if config.VISION_PROVIDER in {"openai", "qwen"} and config.VISION_API_KEY:
-        try:
-            return _analyze_with_vlm(image_path)
-        except Exception:
-            # 真实模型调用失败时回退，保证链路不中断
-            return extract_features(image_path)
-    return extract_features(image_path)
+    """提取底层客观视觉特征（色板、亮度、边缘投影、硬版式参数）。
 
-
-def _analyze_with_vlm(image_path: str) -> ImageFeatures:
-    """真实视觉大模型接入占位（OpenAI / Qwen-VL 兼容接口）。
-
-    这里仍先用 Pillow 提取底层特征作为兜底；接入真实服务时，可在此处
-    发送 base64 图片并解析模型返回，覆盖 color_names / style 等字段。
+    这一层始终由 Pillow 完成——像素能精确测量的东西（真实色板、页边距、
+    栅格）比大模型更准。语义理解（若配置了视觉大模型）在 pipeline 层叠加。
     """
-    # 预留：真实实现可用 httpx 调用 config.VISION_BASE_URL
     return extract_features(image_path)
