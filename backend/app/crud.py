@@ -91,6 +91,29 @@ def serialize_case(case: models.Case) -> dict:
     }
 
 
+def load_image_hashes(db: Session) -> list[tuple[str, int]]:
+    """返回 (phash, case_id) 列表，用于去重比对。"""
+    rows = (
+        db.query(models.Image.phash, models.Case.id)
+        .join(models.Case, models.Case.image_id == models.Image.id)
+        .filter(models.Image.phash != "")
+        .all()
+    )
+    return [(h, cid) for h, cid in rows if h]
+
+
+def find_duplicate_case_id(db: Session, phash: str, threshold: int = 5) -> int | None:
+    """在已有案例中查找与 phash 近重复的案例 id。"""
+    from .imagehash import hamming
+
+    if not phash:
+        return None
+    for h, cid in load_image_hashes(db):
+        if hamming(phash, h) <= threshold:
+            return cid
+    return None
+
+
 def search_cases(
     db: Session, q: str | None = None, tag: str | None = None
 ) -> list[models.Case]:

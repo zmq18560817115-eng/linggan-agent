@@ -93,9 +93,12 @@ export const api = {
         total: number;
         done: number;
         failed: number;
+        skipped: number;
         status: string;
         case_ids: number[];
         errors: string[];
+        skipped_files: string[];
+        concurrency: number;
       }>(r)
     ),
   cases: (q = "", tag = "") => {

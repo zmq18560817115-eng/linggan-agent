@@ -49,3 +49,9 @@ def llm_enabled() -> bool:
 CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
 ).split(",")
+
+# 批量拆解并发数（每个 worker 独立调模型；SQLite 建议 2~4）
+try:
+    BATCH_CONCURRENCY = max(1, int(os.getenv("BATCH_CONCURRENCY", "3")))
+except ValueError:
+    BATCH_CONCURRENCY = 3

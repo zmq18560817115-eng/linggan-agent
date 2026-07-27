@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from . import batch, concept, config, crud, llm, models, overlay
+from . import batch, concept, config, crud, imagehash, llm, models, overlay
 from .agents import run_pipeline
 from .database import get_db, init_db
 from .schemas import AnalysisResult, CaseOut, VisualDirection
@@ -70,11 +70,25 @@ async def analyze_image(
     dest = config.UPLOAD_DIR / stored_name
     dest.write_bytes(await file.read())
 
+    # 感知哈希去重：近重复直接返回已有案例，省去重复拆解
+    phash = ""
+    try:
+        phash = imagehash.dhash(str(dest))
+        dup_id = crud.find_duplicate_case_id(db, phash)
+        if dup_id:
+            dest.unlink(missing_ok=True)
+            dup = db.query(models.Case).filter(models.Case.id == dup_id).first()
+            if dup:
+                return crud.serialize_case(dup)
+    except Exception:
+        pass
+
     image = models.Image(
         url=f"/uploads/{stored_name}",
         filename=file.filename or stored_name,
         source="upload",
         uploader=uploader,
+        phash=phash,
     )
     db.add(image)
     db.flush()

@@ -37,6 +37,7 @@ class Image(Base):
     filename = Column(String, nullable=False)
     source = Column(String, default="upload")     # 来源
     uploader = Column(String, default="anonymous")  # 上传人
+    phash = Column(String, default="", index=True)  # 感知哈希（去重）
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 
     case = relationship("Case", back_populates="image", uselist=False)

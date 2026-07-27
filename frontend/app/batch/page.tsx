@@ -8,9 +8,12 @@ type Status = {
   total: number;
   done: number;
   failed: number;
+  skipped: number;
   status: string;
   case_ids: number[];
   errors: string[];
+  skipped_files: string[];
+  concurrency: number;
 };
 
 export default function BatchPage() {
@@ -50,7 +53,7 @@ export default function BatchPage() {
     }
   };
 
-  const processed = status ? status.done + status.failed : 0;
+  const processed = status ? status.done + status.failed + status.skipped : 0;
   const pct = status && status.total ? Math.round((processed / status.total) * 100) : 0;
 
   return (
@@ -113,7 +116,9 @@ export default function BatchPage() {
               {status.status === "completed" ? "已完成" : "拆解中…"}
             </span>
             <span className="text-gray-400">
-              {processed}/{status.total} · 成功 {status.done} · 失败 {status.failed}
+              {processed}/{status.total} · 成功 {status.done} · 跳过重复 {status.skipped}
+              {status.failed > 0 && ` · 失败 ${status.failed}`}
+              {status.concurrency ? ` · 并发 ${status.concurrency}` : ""}
             </span>
           </div>
           <div className="h-3 w-full overflow-hidden rounded bg-ink">
@@ -137,6 +142,13 @@ export default function BatchPage() {
                   </Link>
                 ))}
               </div>
+            </div>
+          )}
+
+          {status.skipped_files.length > 0 && (
+            <div className="mt-3 text-xs text-gray-500">
+              跳过的近重复：{status.skipped_files.slice(0, 8).join("、")}
+              {status.skipped_files.length > 8 && ` 等 ${status.skipped_files.length} 张`}
             </div>
           )}
 
