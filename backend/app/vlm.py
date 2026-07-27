@@ -107,7 +107,7 @@ def analyze_image(image_bytes: bytes, mime: str, hints: dict) -> dict:
     base = (config.VISION_BASE_URL or "https://api.openai.com/v1").rstrip("/")
     url = f"{base}/chat/completions"
 
-    resp = httpx.post(url, json=payload, headers=headers, timeout=90)
+    resp = httpx.post(url, json=payload, headers=headers, timeout=300)
     resp.raise_for_status()
     content = resp.json()["choices"][0]["message"]["content"]
     return _extract_json(content)
