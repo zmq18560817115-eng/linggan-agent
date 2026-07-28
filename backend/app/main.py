@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from . import batch, concept, config, crud, imagehash, llm, models, overlay
+from . import platform as plat
 from .agents import run_pipeline
 from .database import get_db, init_db
 from .schemas import AnalysisResult, CaseOut, VisualDirection
@@ -288,9 +289,11 @@ async def recommend_direction(
         )
         directions.append(f"情绪关键词：{'、'.join(ref.style.mood_keywords)}")
         palette_hint = "、".join(ref.color.palette[:4])
-        # 提示词：排版/信息层级在前（主），风格/色彩在后（次）
+        # 平台与意向图一致（UI/网页/海报…），避免套电商话术
+        p = plat.style_of(ref.basics.image_type, "", ref.basics.scene)
+        # 提示词：平台框架 + 排版/信息层级在前（主），风格/色彩在后（次）
         prompt = (
-            f"{industry or '品牌'}视觉；"
+            f"{p['zh']}（{industry or '品牌'}）；"
             f"【版式为主】{ref.layout.layout_type}，{ref.layout.grid_columns}，"
             f"{ref.layout.modules}，{ref.layout.alignment}，{ref.layout.margins}，"
             f"信息层级 {' → '.join(ref.layout.hierarchy)}，{ref.typography.title_treatment}，"
@@ -298,7 +301,7 @@ async def recommend_direction(
             f"【风格为辅】{'、'.join(ref.style.style_tags)}，参考色板 {palette_hint}"
             f"（主色 {ref.color.primary}），{ref.light.type}光影；"
             + (f"需求：{text}；" if text else "")
-            + "高质量, 商业级, 精致细节, 8k"
+            + p["quality"]
         )
     else:
         directions = [
@@ -307,10 +310,12 @@ async def recommend_direction(
             "构图建议：居中聚焦 + 留白，突出核心信息",
             f"情绪关键词：{'、'.join(hit_tags[1:3]) or '克制、干净'}",
         ]
+        # 无意向图：从需求文本/行业推断平台，默认不套电商话术
+        p = plat.style_of("", "", f"{text} {industry}")
         prompt = (
-            f"{industry or '品牌'}视觉，{'、'.join(hit_tags)}风格，"
+            f"{p['zh']}（{industry or '品牌'}），{'、'.join(hit_tags)}风格，"
             + (f"需求：{text}，" if text else "")
-            + "高质量, 商业级, 精致细节, 8k"
+            + p["quality"]
         )
 
     # 需求解读增强：配置了文本模型时，用其把需求+意向图解析成更贴合的方向与提示词

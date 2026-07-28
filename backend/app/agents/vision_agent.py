@@ -18,8 +18,8 @@ def run(features: ImageFeatures) -> CaseBasics:
         image_type = "Banner / 横版主视觉"
         scene = "官网首屏、活动 Banner"
     else:
-        image_type = "方图 / 产品卡片"
-        scene = "电商详情、信息流投放"
+        image_type = "方图 / 卡片视觉"
+        scene = "社媒配图、信息流"
 
     # 根据色彩与亮度粗略推断行业倾向
     names = set(features.color_names)

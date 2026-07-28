@@ -1,10 +1,12 @@
 """Prompt Agent —— 生成 AI 绘图提示词。
 
 对应技术方案「五、AI Agent流程 5. Prompt Agent」。
-将拆解结果反向组合成可直接用于 AI 绘图的提示词。
+将拆解结果反向组合成可直接用于 AI 绘图的提示词，
+并**贴合原图的平台/媒介类型**（UI/网页/海报/电商…），避免一律套电商话术。
 """
 from __future__ import annotations
 
+from .. import platform as plat
 from ..schemas import CaseBasics, ColorSystem, Layout, Light, Typography, VisualStyle
 from ..vision_provider import ImageFeatures
 
@@ -19,24 +21,26 @@ def run(
     layout: Layout,
     typography: Typography,
 ) -> str:
+    # 识别平台类型，选用对应平台的设计语言与质量后缀
+    p = plat.style_of(basics.image_type, features.orientation, basics.scene)
     tone = "warm tones" if features.warm else "cool tones"
-    parts = [
-        f"{basics.image_type}, {basics.industry} 行业视觉",
+
+    zh_parts = [
+        f"{p['zh']}（{basics.industry}）",
         "、".join(style.style_tags),
         f"色彩：{'、'.join(features.color_names[:3]) or '中性色'}（{tone}），主色 {color.primary}",
-        f"光影：{light.type}",
-        f"材质：{material}",
-        f"排版：{layout.layout_type}，{layout.alignment}",
+        f"排版：{layout.layout_type}，{layout.grid_columns}，{layout.alignment}，{layout.margins}",
         f"文字：{typography.title_treatment}，字体{typography.font_tone}",
+        f"光影：{light.type}",
         f"情绪：{'、'.join(style.mood_keywords)}",
-        "高质量, 商业级, 精致细节, 8k",
+        p["quality"],
     ]
-    zh = "，".join(p for p in parts if p)
+    zh = "，".join(x for x in zh_parts if x)
+
     en = (
-        f"{basics.industry} visual, {', '.join(style.style_tags)} style, "
-        f"{tone}, primary color {color.primary}, {light.type} lighting, "
-        f"{material}, {layout.layout_type} layout, {layout.alignment}, "
-        f"clear typographic hierarchy, {', '.join(style.mood_keywords)} mood, "
-        "high quality, commercial grade, intricate details, 8k"
+        f"{p['en']}, {basics.industry} industry, {', '.join(style.style_tags)} style, "
+        f"{tone}, primary color {color.primary}, "
+        f"{layout.layout_type} layout, {layout.alignment}, clear typographic hierarchy, "
+        f"{light.type} lighting, {', '.join(style.mood_keywords)} mood, {p['quality']}"
     )
     return f"{zh}\n\nEN: {en}"
